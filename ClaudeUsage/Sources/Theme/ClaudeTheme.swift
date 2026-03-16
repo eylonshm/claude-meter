@@ -41,26 +41,16 @@ extension View {
     /// Applies glass card styling — native Liquid Glass on macOS 26, ultraThinMaterial on older
     @ViewBuilder
     func glassCard(cornerRadius: CGFloat = 12) -> some View {
-        if #available(macOS 26, *) {
-            self
-                .padding(12)
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            self
-                .padding(12)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(
-                            LinearGradient(
-                                colors: [.white.opacity(0.3), .white.opacity(0.1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.5
-                        )
-                )
-        }
+        self
+            .padding(12)
+            .background(
+                Color.white.opacity(0.02),
+                in: RoundedRectangle(cornerRadius: cornerRadius)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(Color.white.opacity(0.04), lineWidth: 0.5)
+            )
     }
 
     /// Applies tinted glass — for progress fills, badges, etc.

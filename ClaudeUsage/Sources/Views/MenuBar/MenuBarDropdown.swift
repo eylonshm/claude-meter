@@ -163,22 +163,15 @@ struct MenuBarDropdown: View {
 
     @ViewBuilder
     private func glassButton(icon: String, action: @escaping () -> Void) -> some View {
-        if #available(macOS 26, *) {
-            Button(action: action) {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
-            }
-            .buttonStyle(.glass)
-        } else {
-            Button(action: action) {
-                Image(systemName: icon)
-                    .foregroundColor(colors.muted)
-                    .font(.system(size: 12))
-                    .padding(4)
-            }
-            .buttonStyle(.plain)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
+        Button(action: action) {
+            Image(systemName: icon)
+                .foregroundColor(colors.muted)
+                .font(.system(size: 12))
+                .frame(width: 28, height: 28)
+                .background(Color.white.opacity(0.02), in: Circle())
+                .overlay(Circle().stroke(Color.white.opacity(0.04), lineWidth: 0.5))
         }
+        .buttonStyle(.plain)
     }
 
     private func statsRows(_ stats: PeriodStats) -> some View {
