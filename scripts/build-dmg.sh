@@ -37,6 +37,11 @@ echo "==> Embedding widget extension..."
 mkdir -p "$BUILD_DIR/$APP_NAME.app/Contents/PlugIns"
 cp -R "$BUILD_DIR/ClaudeUsageWidgetExtension.appex" "$BUILD_DIR/$APP_NAME.app/Contents/PlugIns/"
 
+echo "==> Bundling resources..."
+mkdir -p "$BUILD_DIR/$APP_NAME.app/Contents/Resources"
+cp "$PROJECT_DIR/ClaudeUsage/Resources/fetch-quota.sh" "$BUILD_DIR/$APP_NAME.app/Contents/Resources/"
+chmod +x "$BUILD_DIR/$APP_NAME.app/Contents/Resources/fetch-quota.sh"
+
 echo "==> Creating DMG..."
 # Remove any existing DMG
 rm -f "$DMG_DIR/$DMG_NAME-$VERSION.dmg"

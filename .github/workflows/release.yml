@@ -44,10 +44,13 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CONFIGURATION_BUILD_DIR="$(pwd)/build"
 
-      - name: Embed widget extension
+      - name: Embed widget extension and resources
         run: |
           mkdir -p "build/Claude Usage.app/Contents/PlugIns"
           cp -R "build/ClaudeUsageWidgetExtension.appex" "build/Claude Usage.app/Contents/PlugIns/"
+          mkdir -p "build/Claude Usage.app/Contents/Resources"
+          cp ClaudeUsage/Resources/fetch-quota.sh "build/Claude Usage.app/Contents/Resources/"
+          chmod +x "build/Claude Usage.app/Contents/Resources/fetch-quota.sh"
 
       - name: Get version
         id: version
