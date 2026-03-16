@@ -35,6 +35,74 @@ struct ThemeTypography {
     static let menuBarValue = Font.custom("SF Mono", size: 11).weight(.medium)
 }
 
+// MARK: - Glass Helpers
+
+struct GlassBackground: ViewModifier {
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26, *) {
+            content
+                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+        } else {
+            content
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+        }
+    }
+}
+
+struct GlassCard: ViewModifier {
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26, *) {
+            content
+                .padding(12)
+                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+        } else {
+            content
+                .padding(12)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                )
+        }
+    }
+}
+
+struct InteractiveGlass: ViewModifier {
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26, *) {
+            content
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius))
+        } else {
+            content
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
+        }
+    }
+}
+
+extension View {
+    func glassBackground(cornerRadius: CGFloat = 16) -> some View {
+        modifier(GlassBackground(cornerRadius: cornerRadius))
+    }
+
+    func glassCard(cornerRadius: CGFloat = 12) -> some View {
+        modifier(GlassCard(cornerRadius: cornerRadius))
+    }
+
+    func interactiveGlass(cornerRadius: CGFloat = 8) -> some View {
+        modifier(InteractiveGlass(cornerRadius: cornerRadius))
+    }
+}
+
 // MARK: - App Settings
 
 final class AppSettings: ObservableObject {

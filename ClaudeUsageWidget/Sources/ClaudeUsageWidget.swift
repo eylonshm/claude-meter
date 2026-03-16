@@ -119,7 +119,7 @@ struct SmallWidgetView: View {
                 .foregroundColor(WidgetColors.muted)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(WidgetColors.background, for: .widget)
+        .widgetGlassBackground()
     }
 }
 
@@ -151,7 +151,7 @@ struct MediumWidgetView: View {
         }
         .padding(.horizontal, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(WidgetColors.background, for: .widget)
+        .widgetGlassBackground()
     }
 
     private func quotaRow(_ label: String, percent: Int, reset: String) -> some View {
@@ -266,7 +266,7 @@ struct LargeWidgetView: View {
         }
         .padding(4)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .containerBackground(WidgetColors.background, for: .widget)
+        .widgetGlassBackground()
     }
 
     private var divider: some View {
@@ -395,6 +395,20 @@ struct WidgetModelBreakdown: Codable, Identifiable {
     let displayName: String
     let tokens: Int
     let percentage: Double
+}
+
+// MARK: - Glass Background Helper
+
+extension View {
+    func widgetGlassBackground() -> some View {
+        if #available(macOS 26, *) {
+            return AnyView(self.containerBackground(for: .widget) {
+                Color.clear.glassEffect(.regular, in: .rect(cornerRadius: 20))
+            })
+        } else {
+            return AnyView(self.containerBackground(WidgetColors.background, for: .widget))
+        }
+    }
 }
 
 // MARK: - Preview

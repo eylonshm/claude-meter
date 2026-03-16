@@ -1,15 +1,14 @@
 import SwiftUI
 
-// MARK: - Section Divider (CLI-style)
+// MARK: - Section Divider
 
 struct SectionDivider: View {
     @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
-        Text(String(repeating: "─", count: 40))
-            .font(ThemeTypography.caption)
-            .foregroundColor(settings.colors.muted)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        Rectangle()
+            .fill(settings.colors.muted.opacity(0.2))
+            .frame(height: 0.5)
             .padding(.vertical, 2)
     }
 }
@@ -41,9 +40,10 @@ struct SectionHeader: View {
     @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
-        Text(title)
-            .font(ThemeTypography.heading)
-            .foregroundColor(settings.colors.text)
+        Text(title.uppercased())
+            .font(ThemeTypography.caption)
+            .foregroundColor(settings.colors.muted)
+            .tracking(1.2)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -55,25 +55,24 @@ struct ModelBar: View {
     @ObservedObject private var settings = AppSettings.shared
 
     private let modelColors: [String: Color] = [
-        "Opus": Color(red: 0.694, green: 0.725, blue: 0.976),   // indigo
-        "Sonnet": Color(red: 0.843, green: 0.467, blue: 0.341), // coral
-        "Haiku": Color(red: 0.298, green: 0.686, blue: 0.314),  // green
+        "Opus": Color(red: 0.694, green: 0.725, blue: 0.976),
+        "Sonnet": Color(red: 0.843, green: 0.467, blue: 0.341),
+        "Haiku": Color(red: 0.298, green: 0.686, blue: 0.314),
     ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Stacked bar
+            // Stacked bar with glass effect
             GeometryReader { geo in
                 HStack(spacing: 1) {
                     ForEach(breakdowns) { model in
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(modelColors[model.displayName] ?? settings.colors.muted)
-                            .frame(width: max(2, geo.size.width * model.percentage / 100))
+                        let color = modelColors[model.displayName] ?? settings.colors.muted
+                        glassModelSegment(color: color, width: max(2, geo.size.width * model.percentage / 100))
                     }
                 }
             }
             .frame(height: 10)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .clipShape(RoundedRectangle(cornerRadius: 5))
 
             // Legend
             ForEach(breakdowns) { model in
@@ -96,13 +95,18 @@ struct ModelBar: View {
         }
     }
 
-    private func formatTokens(_ count: Int) -> String {
-        if count >= 1_000_000 {
-            return String(format: "%.1fM", Double(count) / 1_000_000)
-        } else if count >= 1_000 {
-            return String(format: "%.1fK", Double(count) / 1_000)
+    @ViewBuilder
+    private func glassModelSegment(color: Color, width: CGFloat) -> some View {
+        if #available(macOS 26, *) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(color)
+                .frame(width: width)
+                .glassEffect(.regular.tint(color), in: .rect(cornerRadius: 2))
+        } else {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(color.opacity(0.85))
+                .frame(width: width)
         }
-        return "\(count)"
     }
 }
 

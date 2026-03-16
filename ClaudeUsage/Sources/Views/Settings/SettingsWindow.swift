@@ -15,7 +15,6 @@ struct SettingsWindow: View {
                 .tag(1)
         }
         .frame(minWidth: 480, minHeight: 560)
-        .background(settings.colors.background)
     }
 }
 
@@ -40,16 +39,7 @@ struct UsageTab: View {
                         ProgressView()
                             .scaleEffect(0.7)
                     }
-                    Button(action: { Task { await service.refresh() } }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.clockwise")
-                            Text("Refresh")
-                        }
-                        .font(ThemeTypography.caption)
-                        .foregroundColor(colors.primary)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(service.isRefreshing)
+                    refreshButton
                 }
 
                 if let lastUpdated = service.lastUpdated {
@@ -58,57 +48,62 @@ struct UsageTab: View {
                         .foregroundColor(colors.muted)
                 }
 
-                SectionDivider()
-
-                // Quota
-                if service.quotaError == nil {
-                    SectionHeader(title: "Quota")
-                    ProgressBarView(
-                        value: Double(service.quota.sessionPercent),
-                        label: "Session",
-                        detail: "Resets \(service.quota.sessionResetTime)"
-                    )
-                    ProgressBarView(
-                        value: Double(service.quota.weeklyAllPercent),
-                        label: "Weekly (all models)",
-                        detail: "Resets \(service.quota.weeklyAllResetTime)"
-                    )
-                    ProgressBarView(
-                        value: Double(service.quota.weeklySonnetPercent),
-                        label: "Weekly (Sonnet)",
-                        detail: "Resets \(service.quota.weeklySonnetResetTime)"
-                    )
-                    SectionDivider()
+                // Quota card
+                if service.quotaError == nil || service.quota != .empty {
+                    VStack(spacing: 10) {
+                        SectionHeader(title: "Quota")
+                        ProgressBarView(
+                            value: Double(service.quota.sessionPercent),
+                            label: "Session",
+                            detail: "Resets \(service.quota.sessionResetTime)"
+                        )
+                        ProgressBarView(
+                            value: Double(service.quota.weeklyAllPercent),
+                            label: "Weekly (all models)",
+                            detail: "Resets \(service.quota.weeklyAllResetTime)"
+                        )
+                        ProgressBarView(
+                            value: Double(service.quota.weeklySonnetPercent),
+                            label: "Weekly (Sonnet)",
+                            detail: "Resets \(service.quota.weeklySonnetResetTime)"
+                        )
+                    }
+                    .glassCard(cornerRadius: 12)
                 }
 
                 // Period Stats
-                SectionHeader(title: "Today")
-                statsGrid(service.todayStats)
-                SectionDivider()
-
-                SectionHeader(title: "This Week")
-                statsGrid(service.weekStats)
-                SectionDivider()
-
-                SectionHeader(title: "This Month")
-                statsGrid(service.monthStats)
-                SectionDivider()
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionHeader(title: "Today")
+                    statsGrid(service.todayStats)
+                    SectionDivider()
+                    SectionHeader(title: "This Week")
+                    statsGrid(service.weekStats)
+                    SectionDivider()
+                    SectionHeader(title: "This Month")
+                    statsGrid(service.monthStats)
+                }
+                .glassCard(cornerRadius: 12)
 
                 // Model Breakdown
                 if !service.modelBreakdowns.isEmpty {
-                    SectionHeader(title: "Models")
-                    ModelBar(breakdowns: service.modelBreakdowns)
-                    SectionDivider()
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionHeader(title: "Models")
+                        ModelBar(breakdowns: service.modelBreakdowns)
+                    }
+                    .glassCard(cornerRadius: 12)
                 }
 
                 // Lifetime
                 if let cache = service.statsCache {
-                    SectionHeader(title: "Lifetime")
-                    StatRow(label: "Total Sessions", value: formatNumber(cache.totalSessions))
-                    StatRow(label: "Total Messages", value: formatNumber(cache.totalMessages))
-                    if let firstDate = cache.firstSessionDate {
-                        StatRow(label: "Member Since", value: String(firstDate.prefix(10)))
+                    VStack(alignment: .leading, spacing: 6) {
+                        SectionHeader(title: "Lifetime")
+                        StatRow(label: "Total Sessions", value: formatNumber(cache.totalSessions))
+                        StatRow(label: "Total Messages", value: formatNumber(cache.totalMessages))
+                        if let firstDate = cache.firstSessionDate {
+                            StatRow(label: "Member Since", value: String(firstDate.prefix(10)))
+                        }
                     }
+                    .glassCard(cornerRadius: 12)
                 }
             }
             .padding(20)
@@ -119,6 +114,23 @@ struct UsageTab: View {
                 await service.refresh()
             }
         }
+    }
+
+    @ViewBuilder
+    private var refreshButton: some View {
+        Button(action: { Task { await service.refresh() } }) {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.clockwise")
+                Text("Refresh")
+            }
+            .font(ThemeTypography.caption)
+            .foregroundColor(colors.primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+        }
+        .buttonStyle(.plain)
+        .interactiveGlass(cornerRadius: 8)
+        .disabled(service.isRefreshing)
     }
 
     private func statsGrid(_ stats: PeriodStats) -> some View {
@@ -146,84 +158,90 @@ struct SettingsTab: View {
                     .font(ThemeTypography.title)
                     .foregroundColor(colors.text)
 
-                SectionDivider()
-
                 // General
-                SectionHeader(title: "General")
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionHeader(title: "General")
 
-                HStack {
-                    Text("Refresh Interval")
+                    HStack {
+                        Text("Refresh Interval")
+                            .font(ThemeTypography.body)
+                            .foregroundColor(colors.text)
+                        Spacer()
+                        Picker("", selection: $settings.refreshInterval) {
+                            Text("5 min").tag(5)
+                            Text("10 min").tag(10)
+                            Text("15 min").tag(15)
+                            Text("30 min").tag(30)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 240)
+                        .onChange(of: settings.refreshInterval) { _, _ in
+                            service.restartTimer()
+                        }
+                    }
+
+                    Toggle("Launch at Login", isOn: $settings.launchAtLogin)
                         .font(ThemeTypography.body)
                         .foregroundColor(colors.text)
-                    Spacer()
-                    Picker("", selection: $settings.refreshInterval) {
-                        Text("5 min").tag(5)
-                        Text("10 min").tag(10)
-                        Text("15 min").tag(15)
-                        Text("30 min").tag(30)
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 240)
-                    .onChange(of: settings.refreshInterval) { _, _ in
-                        service.restartTimer()
-                    }
+                        .onChange(of: settings.launchAtLogin) { _, newValue in
+                            LoginItemManager.setEnabled(newValue)
+                        }
+
+                    Toggle("Show Menu Bar Icon", isOn: $settings.showMenuBar)
+                        .font(ThemeTypography.body)
+                        .foregroundColor(colors.text)
                 }
-
-                Toggle("Launch at Login", isOn: $settings.launchAtLogin)
-                    .font(ThemeTypography.body)
-                    .foregroundColor(colors.text)
-                    .onChange(of: settings.launchAtLogin) { _, newValue in
-                        LoginItemManager.setEnabled(newValue)
-                    }
-
-                Toggle("Show Menu Bar Icon", isOn: $settings.showMenuBar)
-                    .font(ThemeTypography.body)
-                    .foregroundColor(colors.text)
-
-                SectionDivider()
+                .glassCard(cornerRadius: 12)
 
                 // Warning Threshold
-                SectionHeader(title: "Warning Threshold")
-                HStack {
-                    Text("\(Int(settings.warningThreshold))%")
-                        .font(ThemeTypography.body)
-                        .foregroundColor(colors.text)
-                        .frame(width: 40)
-                    Slider(value: $settings.warningThreshold, in: 50...100, step: 5)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionHeader(title: "Warning Threshold")
+                    HStack {
+                        Text("\(Int(settings.warningThreshold))%")
+                            .font(ThemeTypography.body)
+                            .foregroundColor(colors.text)
+                            .frame(width: 40)
+                        Slider(value: $settings.warningThreshold, in: 50...100, step: 5)
+                            .tint(colors.primary)
+                    }
                 }
-
-                SectionDivider()
+                .glassCard(cornerRadius: 12)
 
                 // Appearance
-                SectionHeader(title: "Appearance")
+                VStack(alignment: .leading, spacing: 10) {
+                    SectionHeader(title: "Appearance")
 
-                colorPickerRow("Background", hex: $settings.backgroundHex)
-                colorPickerRow("Surface", hex: $settings.surfaceHex)
-                colorPickerRow("Primary", hex: $settings.primaryHex)
-                colorPickerRow("Accent", hex: $settings.accentHex)
-                colorPickerRow("Text", hex: $settings.textHex)
-                colorPickerRow("Muted", hex: $settings.mutedHex)
-                colorPickerRow("Warning", hex: $settings.warningHex)
+                    colorPickerRow("Background", hex: $settings.backgroundHex)
+                    colorPickerRow("Surface", hex: $settings.surfaceHex)
+                    colorPickerRow("Primary", hex: $settings.primaryHex)
+                    colorPickerRow("Accent", hex: $settings.accentHex)
+                    colorPickerRow("Text", hex: $settings.textHex)
+                    colorPickerRow("Muted", hex: $settings.mutedHex)
+                    colorPickerRow("Warning", hex: $settings.warningHex)
 
-                Button("Reset to Defaults") {
-                    settings.resetColors()
+                    Button("Reset to Defaults") {
+                        settings.resetColors()
+                    }
+                    .font(ThemeTypography.caption)
+                    .foregroundColor(colors.accent)
+                    .buttonStyle(.plain)
+                    .padding(.top, 4)
                 }
-                .font(ThemeTypography.caption)
-                .foregroundColor(colors.accent)
-                .buttonStyle(.plain)
-
-                SectionDivider()
+                .glassCard(cornerRadius: 12)
 
                 // CLI Path
-                SectionHeader(title: "Advanced")
-                HStack {
-                    Text("Claude CLI Path")
-                        .font(ThemeTypography.body)
-                        .foregroundColor(colors.text)
-                    TextField("Auto-detected", text: $settings.cliPath)
-                        .font(ThemeTypography.body)
-                        .textFieldStyle(.roundedBorder)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionHeader(title: "Advanced")
+                    HStack {
+                        Text("Claude CLI Path")
+                            .font(ThemeTypography.body)
+                            .foregroundColor(colors.text)
+                        TextField("Auto-detected", text: $settings.cliPath)
+                            .font(ThemeTypography.body)
+                            .textFieldStyle(.roundedBorder)
+                    }
                 }
+                .glassCard(cornerRadius: 12)
             }
             .padding(20)
         }

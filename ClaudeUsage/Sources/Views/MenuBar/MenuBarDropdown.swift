@@ -8,97 +8,49 @@ struct MenuBarDropdown: View {
     private var colors: ThemeColors { settings.colors }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        dropdownContent
+            .padding(16)
+            .frame(width: 300)
+            .background(dropdownBackground)
+    }
+
+    @ViewBuilder
+    private var dropdownBackground: some View {
+        if #available(macOS 26, *) {
+            Color.clear
+        } else {
+            colors.background
+        }
+    }
+
+    private var dropdownContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
             // Header
             HStack {
-                Image(systemName: "sparkle")
+                Image(systemName: "sparkles")
                     .foregroundColor(colors.accent)
+                    .font(.system(size: 14))
                 Text("Claude Usage")
                     .font(ThemeTypography.heading)
                     .foregroundColor(colors.text)
                 Spacer()
-                if service.isRefreshing {
-                    ProgressView()
-                        .scaleEffect(0.6)
-                        .frame(width: 16, height: 16)
-                } else {
-                    Button(action: { Task { await service.refresh() } }) {
-                        Image(systemName: "arrow.clockwise")
-                            .foregroundColor(colors.muted)
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.plain)
-                }
+                refreshButton
             }
 
-            SectionDivider()
+            // Quota Section — glass card
+            quotaCard
 
-            // Quota Section — always show bars with whatever data we have
-            quotaSection
-            if let error = service.quotaError {
-                Text(error)
-                    .font(ThemeTypography.caption)
-                    .foregroundColor(colors.accent)
-                    .lineLimit(2)
-            }
-
-            SectionDivider()
-
-            // Stats — show today if available, otherwise latest day or lifetime
-            if service.todayStats.messages > 0 {
-                SectionHeader(title: "Today")
-                statsRows(service.todayStats)
-            } else if let cache = service.statsCache,
-                      let lastDay = cache.dailyActivity.last {
-                SectionHeader(title: "Latest (\(lastDay.date))")
-                StatRow(label: "Messages", value: formatNumber(lastDay.messageCount))
-                StatRow(label: "Sessions", value: formatNumber(lastDay.sessionCount))
-                StatRow(label: "Tool Calls", value: formatNumber(lastDay.toolCallCount))
-            }
-
-            // Lifetime totals — always show if available
-            if let cache = service.statsCache {
-                SectionDivider()
-                SectionHeader(title: "Lifetime")
-                StatRow(label: "Messages", value: formatNumber(cache.totalMessages))
-                StatRow(label: "Sessions", value: formatNumber(cache.totalSessions))
-                if let staleDate = cache.lastComputedDate as String? {
-                    Text("Stats as of \(staleDate)")
-                        .font(ThemeTypography.caption)
-                        .foregroundColor(colors.muted)
-                }
-            }
-
-            SectionDivider()
+            // Stats card
+            statsCard
 
             // Model Breakdown
             if !service.modelBreakdowns.isEmpty {
-                SectionHeader(title: "Models")
-                ModelBar(breakdowns: service.modelBreakdowns)
-                SectionDivider()
+                modelCard
             }
 
             // Footer
-            HStack {
-                if let lastUpdated = service.lastUpdated {
-                    Text("Updated \(lastUpdated, style: .relative) ago")
-                        .font(ThemeTypography.caption)
-                        .foregroundColor(colors.muted)
-                }
-                Spacer()
-                Button(action: {
-                    openWindow(id: "settings")
-                }) {
-                    Image(systemName: "gear")
-                        .foregroundColor(colors.muted)
-                        .font(.system(size: 11))
-                }
-                .buttonStyle(.plain)
-            }
+            footerRow
         }
-        .padding(12)
-        .frame(width: 280)
-        .background(colors.background)
         .task {
             if service.lastUpdated == nil {
                 await service.refresh()
@@ -106,7 +58,9 @@ struct MenuBarDropdown: View {
         }
     }
 
-    private var quotaSection: some View {
+    // MARK: - Quota Card
+
+    private var quotaCard: some View {
         VStack(spacing: 8) {
             ProgressBarView(
                 value: Double(service.quota.sessionPercent),
@@ -123,6 +77,88 @@ struct MenuBarDropdown: View {
                 label: "Weekly (Sonnet)",
                 detail: "Resets \(service.quota.weeklySonnetResetTime)"
             )
+            if let error = service.quotaError {
+                Text(error)
+                    .font(ThemeTypography.caption)
+                    .foregroundColor(colors.accent)
+                    .lineLimit(2)
+            }
+        }
+        .glassCard(cornerRadius: 10)
+    }
+
+    // MARK: - Stats Card
+
+    private var statsCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if service.todayStats.messages > 0 {
+                SectionHeader(title: "Today")
+                statsRows(service.todayStats)
+            } else if let cache = service.statsCache,
+                      let lastDay = cache.dailyActivity.last {
+                SectionHeader(title: "Latest (\(lastDay.date))")
+                StatRow(label: "Messages", value: formatNumber(lastDay.messageCount))
+                StatRow(label: "Sessions", value: formatNumber(lastDay.sessionCount))
+                StatRow(label: "Tool Calls", value: formatNumber(lastDay.toolCallCount))
+            }
+
+            if let cache = service.statsCache {
+                SectionDivider()
+                SectionHeader(title: "Lifetime")
+                StatRow(label: "Messages", value: formatNumber(cache.totalMessages))
+                StatRow(label: "Sessions", value: formatNumber(cache.totalSessions))
+            }
+        }
+        .glassCard(cornerRadius: 10)
+    }
+
+    // MARK: - Model Card
+
+    private var modelCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SectionHeader(title: "Models")
+            ModelBar(breakdowns: service.modelBreakdowns)
+        }
+        .glassCard(cornerRadius: 10)
+    }
+
+    // MARK: - Footer
+
+    private var footerRow: some View {
+        HStack {
+            if let lastUpdated = service.lastUpdated {
+                Text("Updated \(lastUpdated, style: .relative) ago")
+                    .font(ThemeTypography.caption)
+                    .foregroundColor(colors.muted)
+            }
+            Spacer()
+            Button(action: { openWindow(id: "settings") }) {
+                Image(systemName: "gear")
+                    .foregroundColor(colors.muted)
+                    .font(.system(size: 12))
+            }
+            .buttonStyle(.plain)
+            .interactiveGlass(cornerRadius: 6)
+        }
+    }
+
+    // MARK: - Refresh Button
+
+    @ViewBuilder
+    private var refreshButton: some View {
+        if service.isRefreshing {
+            ProgressView()
+                .scaleEffect(0.6)
+                .frame(width: 16, height: 16)
+        } else {
+            Button(action: { Task { await service.refresh() } }) {
+                Image(systemName: "arrow.clockwise")
+                    .foregroundColor(colors.muted)
+                    .font(.system(size: 12))
+                    .padding(4)
+            }
+            .buttonStyle(.plain)
+            .interactiveGlass(cornerRadius: 6)
         }
     }
 

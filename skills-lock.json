@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "liquid-glass": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "b72cae01d79346807b04a7048382135947f5e8d77e2f2e95ba9ebc3eac6f360b"
+    }
+  }
+}
