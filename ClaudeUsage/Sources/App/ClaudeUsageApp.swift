@@ -1,4 +1,5 @@
 import SwiftUI
+import ServiceManagement
 
 @main
 struct ClaudeUsageApp: App {
@@ -12,14 +13,6 @@ struct ClaudeUsageApp: App {
             MenuBarDropdown()
         }
         .menuBarExtraStyle(.window)
-
-        // Settings Window
-        Window("Claude Usage", id: "settings") {
-            SettingsWindow()
-                .frame(minWidth: 480, minHeight: 560)
-        }
-        .defaultSize(width: 520, height: 640)
-        .windowStyle(.automatic)
     }
 
     private var menuBarTitle: String {
@@ -30,13 +23,29 @@ struct ClaudeUsageApp: App {
     }
 }
 
-// Hide dock icon — this is a menu-bar-only app
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
-        // Trigger initial data fetch
+        let settings = AppSettings.shared
+        let isFirstLaunch = !UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
+
+        if isFirstLaunch {
+            UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+
+            // Enable launch at login on first run
+            settings.launchAtLogin = true
+            LoginItemManager.setEnabled(true)
+        }
+
+        // Start polling immediately
         Task { @MainActor in
             await UsageDataService.shared.refresh()
         }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            SettingsWindowController.shared.open()
+        }
+        return true
     }
 }

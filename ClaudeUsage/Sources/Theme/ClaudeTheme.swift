@@ -70,7 +70,7 @@ final class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
     @AppStorage("refreshInterval") var refreshInterval: Int = 10
-    @AppStorage("launchAtLogin") var launchAtLogin: Bool = false
+    @AppStorage("launchAtLogin") var launchAtLogin: Bool = true
     @AppStorage("showMenuBar") var showMenuBar: Bool = true
     @AppStorage("warningThreshold") var warningThreshold: Double = 80
     @AppStorage("cliPath") var cliPath: String = ""

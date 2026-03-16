@@ -3,7 +3,6 @@ import SwiftUI
 struct MenuBarDropdown: View {
     @ObservedObject var service = UsageDataService.shared
     @ObservedObject var settings = AppSettings.shared
-    @Environment(\.openWindow) private var openWindow
 
     private var colors: ThemeColors { settings.colors }
 
@@ -141,7 +140,7 @@ struct MenuBarDropdown: View {
             }
             Spacer()
             glassButton(icon: "gear") {
-                openWindow(id: "settings")
+                SettingsWindowController.shared.open()
             }
         }
     }
