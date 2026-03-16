@@ -3,15 +3,13 @@ import SwiftUI
 @main
 struct ClaudeUsageApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @ObservedObject private var service = UsageDataService.shared
-    @ObservedObject private var settings = AppSettings.shared
+    @StateObject private var service = UsageDataService.shared
+    @StateObject private var settings = AppSettings.shared
 
     var body: some Scene {
         // Menu Bar
-        MenuBarExtra {
+        MenuBarExtra(menuBarTitle, systemImage: "sparkles") {
             MenuBarDropdown()
-        } label: {
-            menuBarLabel
         }
         .menuBarExtraStyle(.window)
 
@@ -24,19 +22,11 @@ struct ClaudeUsageApp: App {
         .windowStyle(.automatic)
     }
 
-    @ViewBuilder
-    private var menuBarLabel: some View {
-        let percent = service.quota.weeklyAllPercent
-        let isWarning = Double(percent) >= settings.warningThreshold
-        let color: Color = isWarning ? settings.colors.accent : settings.colors.primary
-
-        HStack(spacing: 4) {
-            Image(systemName: "sparkle")
-                .font(.system(size: 11))
-            Text(service.quotaError != nil ? "—" : "\(percent)%")
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+    private var menuBarTitle: String {
+        if service.quotaError != nil && service.quota == .empty {
+            return "—"
         }
-        .foregroundColor(color)
+        return "\(service.quota.weeklyAllPercent)%"
     }
 }
 
@@ -44,5 +34,9 @@ struct ClaudeUsageApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        // Trigger initial data fetch
+        Task { @MainActor in
+            await UsageDataService.shared.refresh()
+        }
     }
 }

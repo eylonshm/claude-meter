@@ -61,12 +61,32 @@ final class UsageDataService: ObservableObject {
     }
 
     private func fetchQuota() async {
+        let logFile = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude-usage-debug.log")
+        func log(_ msg: String) {
+            let line = "[\(Date())] \(msg)\n"
+            if let data = line.data(using: .utf8) {
+                if FileManager.default.fileExists(atPath: logFile.path) {
+                    if let fh = try? FileHandle(forWritingTo: logFile) {
+                        fh.seekToEndOfFile()
+                        fh.write(data)
+                        fh.closeFile()
+                    }
+                } else {
+                    try? data.write(to: logFile)
+                }
+            }
+        }
+
+        log("Starting quota fetch...")
         do {
             let quotaData = try await quotaFetcher.fetch()
             self.quota = quotaData
             self.quotaError = nil
+            log("OK: session=\(quotaData.sessionPercent)% weekly=\(quotaData.weeklyAllPercent)% sonnet=\(quotaData.weeklySonnetPercent)%")
         } catch {
             self.quotaError = error.localizedDescription
+            log("ERROR: \(error)")
         }
     }
 

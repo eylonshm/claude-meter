@@ -33,23 +33,41 @@ struct MenuBarDropdown: View {
 
             SectionDivider()
 
-            // Quota Section
+            // Quota Section — always show bars with whatever data we have
+            quotaSection
             if let error = service.quotaError {
                 Text(error)
                     .font(ThemeTypography.caption)
                     .foregroundColor(colors.accent)
-            } else {
-                quotaSection
+                    .lineLimit(2)
             }
 
             SectionDivider()
 
-            // Today's Stats
-            SectionHeader(title: "Today")
-            StatRow(label: "Messages", value: formatNumber(service.todayStats.messages))
-            StatRow(label: "Sessions", value: formatNumber(service.todayStats.sessions))
-            StatRow(label: "Tool Calls", value: formatNumber(service.todayStats.toolCalls))
-            StatRow(label: "Tokens", value: formatTokens(service.todayStats.tokens))
+            // Stats — show today if available, otherwise latest day or lifetime
+            if service.todayStats.messages > 0 {
+                SectionHeader(title: "Today")
+                statsRows(service.todayStats)
+            } else if let cache = service.statsCache,
+                      let lastDay = cache.dailyActivity.last {
+                SectionHeader(title: "Latest (\(lastDay.date))")
+                StatRow(label: "Messages", value: formatNumber(lastDay.messageCount))
+                StatRow(label: "Sessions", value: formatNumber(lastDay.sessionCount))
+                StatRow(label: "Tool Calls", value: formatNumber(lastDay.toolCallCount))
+            }
+
+            // Lifetime totals — always show if available
+            if let cache = service.statsCache {
+                SectionDivider()
+                SectionHeader(title: "Lifetime")
+                StatRow(label: "Messages", value: formatNumber(cache.totalMessages))
+                StatRow(label: "Sessions", value: formatNumber(cache.totalSessions))
+                if let staleDate = cache.lastComputedDate as String? {
+                    Text("Stats as of \(staleDate)")
+                        .font(ThemeTypography.caption)
+                        .foregroundColor(colors.muted)
+                }
+            }
 
             SectionDivider()
 
@@ -105,6 +123,15 @@ struct MenuBarDropdown: View {
                 label: "Weekly (Sonnet)",
                 detail: "Resets \(service.quota.weeklySonnetResetTime)"
             )
+        }
+    }
+
+    private func statsRows(_ stats: PeriodStats) -> some View {
+        Group {
+            StatRow(label: "Messages", value: formatNumber(stats.messages))
+            StatRow(label: "Sessions", value: formatNumber(stats.sessions))
+            StatRow(label: "Tool Calls", value: formatNumber(stats.toolCalls))
+            StatRow(label: "Tokens", value: formatTokens(stats.tokens))
         }
     }
 }

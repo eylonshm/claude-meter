@@ -20,17 +20,21 @@ targets:
     platform: macOS
     sources:
       - ClaudeUsage/Sources
+    resources:
+      - path: ClaudeUsage/Resources/fetch-quota.sh
+        buildPhase: resources
+    info:
+      path: ClaudeUsage/Resources/Info.plist
+      properties:
+        LSUIElement: true
+        CFBundleDisplayName: Claude Usage
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.claudeusage.app
-        INFOPLIST_VALUES: >-
-          MACOSX_DEPLOYMENT_TARGET=14.0
-          LSUIElement=true
         CODE_SIGN_ENTITLEMENTS: ClaudeUsage/Resources/ClaudeUsage.entitlements
         PRODUCT_NAME: Claude Usage
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
-        GENERATE_INFOPLIST_FILE: true
     entitlements:
       path: ClaudeUsage/Resources/ClaudeUsage.entitlements
       properties:

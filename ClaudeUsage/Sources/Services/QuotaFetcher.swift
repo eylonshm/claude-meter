@@ -4,16 +4,11 @@ final class QuotaFetcher {
     private let settings = AppSettings.shared
 
     func fetch() async throws -> QuotaData {
-        let claudePath = resolveClaudePath()
-        guard FileManager.default.fileExists(atPath: claudePath) else {
-            throw FetchError.cliNotFound
-        }
-
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
                 do {
-                    let output = try self.runClaudeUsage(claudePath: claudePath)
-                    let quota = try self.parseUsageOutput(output)
+                    let json = try self.runFetchScript()
+                    let quota = try self.parseJSON(json)
                     continuation.resume(returning: quota)
                 } catch {
                     continuation.resume(throwing: error)
@@ -22,162 +17,131 @@ final class QuotaFetcher {
         }
     }
 
-    // MARK: - PTY Process
+    // MARK: - Run bundled shell script
 
-    private func runClaudeUsage(claudePath: String) throws -> String {
-        var primary: Int32 = 0
-        var secondary: Int32 = 0
+    private func runFetchScript() throws -> String {
+        // Find the script — check bundle first, then source tree
+        let scriptName = "fetch-quota.sh"
+        var scriptPath: String?
 
-        guard openpty(&primary, &secondary, nil, nil, nil) == 0 else {
-            throw FetchError.parseFailed("Failed to open PTY")
+        if let bundled = Bundle.main.path(forResource: "fetch-quota", ofType: "sh") {
+            scriptPath = bundled
+        } else {
+            // Fallback: look relative to the executable
+            let execURL = URL(fileURLWithPath: CommandLine.arguments[0])
+            let resourcesDir = execURL
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+                .appendingPathComponent("Resources")
+                .appendingPathComponent(scriptName)
+            if FileManager.default.fileExists(atPath: resourcesDir.path) {
+                scriptPath = resourcesDir.path
+            }
+        }
+
+        guard let path = scriptPath else {
+            throw FetchError.parseFailed("fetch-quota.sh not found in bundle")
+        }
+
+        // Resolve full claude CLI path
+        let cliPath = resolveClaudePath()
+        guard !cliPath.isEmpty else {
+            throw FetchError.cliNotFound
         }
 
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: claudePath)
-        process.arguments = []
-        process.environment = ProcessInfo.processInfo.environment
+        let stdout = Pipe()
+        let stderr = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/bash")
+        process.arguments = [path, cliPath]
+        process.standardOutput = stdout
+        process.standardError = stderr
 
-        let primaryHandle = FileHandle(fileDescriptor: primary, closeOnDealloc: false)
+        // GUI apps get minimal env — add everything claude needs for auth
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
 
-        process.standardInput = FileHandle(fileDescriptor: secondary, closeOnDealloc: false)
-        process.standardOutput = FileHandle(fileDescriptor: secondary, closeOnDealloc: false)
-        process.standardError = FileHandle(fileDescriptor: secondary, closeOnDealloc: false)
+        // Set working directory to a trusted claude project dir to avoid trust dialog
+        let trustedDir = findTrustedDirectory(home: home)
+        process.currentDirectoryURL = URL(fileURLWithPath: trustedDir)
+        var env = ProcessInfo.processInfo.environment
+        let fullPath = [
+            "\(home)/.local/bin",
+            "/usr/local/bin",
+            "/opt/homebrew/bin",
+            "\(home)/.claude/local",
+            "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin"
+        ].joined(separator: ":")
+        env["PATH"] = fullPath
+        env["HOME"] = home
+        env["USER"] = NSUserName()
+        env["SHELL"] = env["SHELL"] ?? "/bin/zsh"
+        env["TERM"] = "xterm-256color"
+        process.environment = env
 
         try process.run()
+        process.waitUntilExit()
 
-        // Wait for prompt to appear
-        Thread.sleep(forTimeInterval: 3.0)
+        let data = stdout.fileHandleForReading.readDataToEndOfFile()
+        let errData = stderr.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8) ?? ""
+        let errOutput = String(data: errData, encoding: .utf8) ?? ""
 
-        // Send /usage command
-        let usageCmd = "/usage\r".data(using: .utf8)!
-        primaryHandle.write(usageCmd)
-
-        // Wait for output
-        Thread.sleep(forTimeInterval: 5.0)
-
-        // Read output
-        let outputData = primaryHandle.availableData
-        let rawOutput = String(data: outputData, encoding: .utf8) ?? ""
-
-        // Send escape to close the usage panel
-        primaryHandle.write(Data([0x1B]))
-        Thread.sleep(forTimeInterval: 0.5)
-
-        // Send /exit
-        let exitCmd = "/exit\r".data(using: .utf8)!
-        primaryHandle.write(exitCmd)
-
-        // Give it a moment to exit
-        Thread.sleep(forTimeInterval: 1.0)
-
-        if process.isRunning {
-            process.terminate()
+        if output.isEmpty || output.contains("\"error\"") {
+            if output.contains("cli_not_found") {
+                throw FetchError.cliNotFound
+            }
+            let detail = errOutput.isEmpty ? output : errOutput
+            throw FetchError.parseFailed("Script failed: \(detail.prefix(200))")
         }
 
-        close(primary)
-        close(secondary)
-
-        return rawOutput
+        return output
     }
 
-    // MARK: - Output Parsing
+    // MARK: - Trusted Directory
 
-    private func parseUsageOutput(_ raw: String) throws -> QuotaData {
-        // Strip ANSI escape sequences
-        let stripped = raw
-            .replacingOccurrences(of: "\\x1b\\[[0-9;]*[a-zA-Z]", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "\\x1b\\[\\?[0-9]*[a-z]", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "\\x1b\\[[0-9;]*m", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "\u{1B}\\[[0-9;]*[a-zA-Z]", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "\u{1B}\\[\\?[0-9]*[a-z]", with: "", options: .regularExpression)
+    private func findTrustedDirectory(home: String) -> String {
+        // Claude stores project data in ~/.claude/projects/ with encoded paths
+        // e.g. "-Users-eshmilovich-Documents-Go7-Projects"
+        // The leading dash represents "/" so the full path is /Users/eshmilovich/Documents/Go7/Projects
+        let projectsDir = "\(home)/.claude/projects"
+        let fm = FileManager.default
 
-        var sessionPercent = 0
-        var sessionReset = "—"
-        var weeklyAllPercent = 0
-        var weeklyAllReset = "—"
-        var weeklySonnetPercent = 0
-        var weeklySonnetReset = "—"
-
-        let lines = stripped.components(separatedBy: .newlines)
-        var currentSection = ""
-
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-
-            if trimmed.contains("Current session") {
-                currentSection = "session"
-            } else if trimmed.contains("all models") {
-                currentSection = "weekly_all"
-            } else if trimmed.contains("Sonnet only") {
-                currentSection = "weekly_sonnet"
-            }
-
-            // Extract percentage
-            if let percentMatch = trimmed.range(of: "(\\d+)%\\s*used", options: .regularExpression) {
-                let percentStr = trimmed[percentMatch]
-                    .replacingOccurrences(of: "%", with: "")
-                    .replacingOccurrences(of: "used", with: "")
-                    .trimmingCharacters(in: .whitespaces)
-                let percent = Int(percentStr) ?? 0
-
-                switch currentSection {
-                case "session": sessionPercent = percent
-                case "weekly_all": weeklyAllPercent = percent
-                case "weekly_sonnet": weeklySonnetPercent = percent
-                default: break
-                }
-            }
-
-            // Extract reset time
-            if trimmed.contains("Reset") || trimmed.contains("Rese") {
-                let resetText = trimmed
-                    .replacingOccurrences(of: "Resets", with: "")
-                    .replacingOccurrences(of: "Rese s", with: "")
-                    .replacingOccurrences(of: "Reset", with: "")
-                    .trimmingCharacters(in: .whitespaces)
-
-                if !resetText.isEmpty {
-                    switch currentSection {
-                    case "session": sessionReset = resetText
-                    case "weekly_all": weeklyAllReset = resetText
-                    case "weekly_sonnet": weeklySonnetReset = resetText
-                    default: break
-                    }
+        if let entries = try? fm.contentsOfDirectory(atPath: projectsDir) {
+            // Sort by longest path first (most specific directories first)
+            let sorted = entries.sorted { $0.count > $1.count }
+            for entry in sorted {
+                // Skip entries with dots (like MEMORY.md) or nested worktree paths
+                guard !entry.contains("."), !entry.contains("worktree") else { continue }
+                // Decode: leading dash = /, subsequent single dashes = /
+                let decoded = entry.replacingOccurrences(of: "-", with: "/")
+                // decoded starts with / already since entry starts with -
+                if fm.fileExists(atPath: decoded) {
+                    return decoded
                 }
             }
         }
 
-        // Validate we got at least some data
-        if sessionPercent == 0 && weeklyAllPercent == 0 && weeklySonnetPercent == 0 {
-            // Might still be valid if usage is actually 0%, but try alternate parsing
-            if !stripped.contains("used") {
-                throw FetchError.parseFailed("No usage data found in output")
-            }
-        }
-
-        return QuotaData(
-            sessionPercent: sessionPercent,
-            sessionResetTime: sessionReset,
-            weeklyAllPercent: weeklyAllPercent,
-            weeklyAllResetTime: weeklyAllReset,
-            weeklySonnetPercent: weeklySonnetPercent,
-            weeklySonnetResetTime: weeklySonnetReset
-        )
+        return home
     }
 
     // MARK: - CLI Path Resolution
 
     private func resolveClaudePath() -> String {
-        if !settings.cliPath.isEmpty {
+        // User override
+        if !settings.cliPath.isEmpty && FileManager.default.fileExists(atPath: settings.cliPath) {
             return settings.cliPath
         }
 
-        // Check common locations
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
         let candidates = [
+            "\(home)/.local/bin/claude",
             "/usr/local/bin/claude",
             "/opt/homebrew/bin/claude",
-            "\(FileManager.default.homeDirectoryForCurrentUser.path)/.claude/local/claude",
-            "\(FileManager.default.homeDirectoryForCurrentUser.path)/.local/bin/claude"
+            "\(home)/.claude/local/claude",
+            "\(home)/.nvm/versions/node/v20.19.5/bin/claude",
         ]
 
         for path in candidates {
@@ -186,17 +150,45 @@ final class QuotaFetcher {
             }
         }
 
-        // Try which
+        // Last resort: try `which` with an expanded PATH
         let process = Process()
         let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = ["claude"]
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["bash", "-lc", "which claude"]
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
         try? process.run()
         process.waitUntilExit()
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let result = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return result.isEmpty ? "/usr/local/bin/claude" : result
+        let result = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return result
+    }
+
+    // MARK: - Parse JSON output
+
+    private func parseJSON(_ json: String) throws -> QuotaData {
+        guard let data = json.data(using: .utf8) else {
+            throw FetchError.parseFailed("Invalid JSON encoding")
+        }
+
+        struct ScriptOutput: Decodable {
+            let sessionPercent: Int
+            let sessionResetTime: String
+            let weeklyAllPercent: Int
+            let weeklyAllResetTime: String
+            let weeklySonnetPercent: Int
+            let weeklySonnetResetTime: String
+        }
+
+        let decoded = try JSONDecoder().decode(ScriptOutput.self, from: data)
+
+        return QuotaData(
+            sessionPercent: decoded.sessionPercent,
+            sessionResetTime: decoded.sessionResetTime.trimmingCharacters(in: .whitespaces),
+            weeklyAllPercent: decoded.weeklyAllPercent,
+            weeklyAllResetTime: decoded.weeklyAllResetTime.trimmingCharacters(in: .whitespaces),
+            weeklySonnetPercent: decoded.weeklySonnetPercent,
+            weeklySonnetResetTime: decoded.weeklySonnetResetTime.trimmingCharacters(in: .whitespaces)
+        )
     }
 }
