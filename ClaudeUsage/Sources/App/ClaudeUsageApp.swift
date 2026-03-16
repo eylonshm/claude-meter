@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct ClaudeUsageApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @ObservedObject private var service = UsageDataService.shared
     @ObservedObject private var settings = AppSettings.shared
 
@@ -36,5 +37,12 @@ struct ClaudeUsageApp: App {
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
         }
         .foregroundColor(color)
+    }
+}
+
+// Hide dock icon — this is a menu-bar-only app
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
     }
 }
