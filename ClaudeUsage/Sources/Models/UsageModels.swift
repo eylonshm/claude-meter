@@ -108,10 +108,21 @@ enum AppConstants {
 
 extension String {
     var cleanModelName: String {
-        if self.contains("opus") { return "Opus" }
-        if self.contains("sonnet") { return "Sonnet" }
-        if self.contains("haiku") { return "Haiku" }
-        return self
+        // Extract model family and version, e.g. "claude-sonnet-4-6" -> "Sonnet 4.6"
+        let lower = self.lowercased()
+        let family: String
+        if lower.contains("opus") { family = "Opus" }
+        else if lower.contains("sonnet") { family = "Sonnet" }
+        else if lower.contains("haiku") { family = "Haiku" }
+        else { return self }
+
+        // Try to extract version like "4-6", "4-5" from the model ID
+        // e.g. "claude-sonnet-4-6" or "claude-sonnet-4-5-20250929"
+        if let range = lower.range(of: #"(\d+)-(\d+)"#, options: .regularExpression) {
+            let version = String(lower[range]).replacingOccurrences(of: "-", with: ".")
+            return "\(family) \(version)"
+        }
+        return family
     }
 
     var modelSortOrder: Int {

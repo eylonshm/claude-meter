@@ -198,6 +198,25 @@ struct SettingsTab: View {
                     Toggle("Show Menu Bar Icon", isOn: $settings.showMenuBar)
                         .font(ThemeTypography.body)
                         .foregroundColor(colors.text)
+
+                    Toggle("Show Lifetime Stats", isOn: $settings.showLifetime)
+                        .font(ThemeTypography.body)
+                        .foregroundColor(colors.text)
+
+                    HStack {
+                        Text("Menu Bar Style")
+                            .font(ThemeTypography.body)
+                            .foregroundColor(colors.text)
+                        Spacer()
+                        Picker("", selection: $settings.menuBarStyle) {
+                            Text("Icon + %").tag("iconAndPercent")
+                            Text("% Only").tag("percentOnly")
+                            Text("Circle").tag("progressCircle")
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 240)
+                    }
+
                 }
                 .glassCard(cornerRadius: 12)
 
@@ -227,12 +246,22 @@ struct SettingsTab: View {
                     colorPickerRow("Muted", hex: $settings.mutedHex)
                     colorPickerRow("Warning", hex: $settings.warningHex)
 
-                    Button("Reset to Defaults") {
-                        settings.resetColors()
+                    HStack {
+                        Spacer()
+                        Button(action: { settings.resetColors() }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.counterclockwise")
+                                Text("Reset to Defaults")
+                            }
+                            .font(ThemeTypography.caption)
+                            .foregroundColor(colors.accent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.white.opacity(0.02), in: Capsule())
+                            .overlay(Capsule().stroke(Color.white.opacity(0.04), lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .font(ThemeTypography.caption)
-                    .foregroundColor(colors.accent)
-                    .buttonStyle(.plain)
                     .padding(.top, 4)
                 }
                 .glassCard(cornerRadius: 12)

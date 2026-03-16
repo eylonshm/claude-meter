@@ -54,11 +54,12 @@ struct ModelBar: View {
     let breakdowns: [ModelBreakdown]
     @ObservedObject private var settings = AppSettings.shared
 
-    private let modelColors: [String: Color] = [
-        "Opus": Color(red: 0.694, green: 0.725, blue: 0.976),
-        "Sonnet": Color(red: 0.843, green: 0.467, blue: 0.341),
-        "Haiku": Color(red: 0.298, green: 0.686, blue: 0.314),
-    ]
+    private func colorForModel(_ name: String) -> Color {
+        if name.contains("Opus") { return Color(red: 0.694, green: 0.725, blue: 0.976) }
+        if name.contains("Sonnet") { return Color(red: 0.843, green: 0.467, blue: 0.341) }
+        if name.contains("Haiku") { return Color(red: 0.298, green: 0.686, blue: 0.314) }
+        return settings.colors.muted
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -66,7 +67,7 @@ struct ModelBar: View {
             GeometryReader { geo in
                 HStack(spacing: 1) {
                     ForEach(breakdowns) { model in
-                        let color = modelColors[model.displayName] ?? settings.colors.muted
+                        let color = colorForModel(model.displayName)
                         glassModelSegment(color: color, width: max(2, geo.size.width * model.percentage / 100))
                     }
                 }
@@ -78,7 +79,7 @@ struct ModelBar: View {
             ForEach(breakdowns) { model in
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(modelColors[model.displayName] ?? settings.colors.muted)
+                        .fill(colorForModel(model.displayName))
                         .frame(width: 8, height: 8)
                     Text(model.displayName)
                         .font(ThemeTypography.caption)

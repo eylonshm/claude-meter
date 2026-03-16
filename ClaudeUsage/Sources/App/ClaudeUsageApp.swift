@@ -9,17 +9,63 @@ struct ClaudeUsageApp: App {
 
     var body: some Scene {
         // Menu Bar
-        MenuBarExtra(menuBarTitle, systemImage: "sparkles") {
+        MenuBarExtra {
             MenuBarDropdown()
+        } label: {
+            menuBarLabel
         }
         .menuBarExtraStyle(.window)
     }
+    @ViewBuilder
+    private var menuBarLabel: some View {
+        let pct = service.quota.sessionPercent
+        let hasData = !(service.quotaError != nil && service.quota == .empty)
 
-    private var menuBarTitle: String {
-        if service.quotaError != nil && service.quota == .empty {
-            return "—"
+        switch settings.menuBarStyle {
+        case "progressCircle":
+            Image(nsImage: progressCircleImage(percent: hasData ? pct : 0))
+        case "percentOnly":
+            Text(hasData ? "\(pct)%" : "—")
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+        default: // iconAndPercent
+            HStack(spacing: 3) {
+                Image(systemName: "sparkles")
+                Text(hasData ? "\(pct)%" : "—")
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+            }
         }
-        return "\(service.quota.weeklyAllPercent)%"
+    }
+
+    private func progressCircleImage(percent: Int) -> NSImage {
+        let size: CGFloat = 18
+        let lineWidth: CGFloat = 2
+        let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+            let center = CGPoint(x: size / 2, y: size / 2)
+            let radius = (size - lineWidth) / 2
+
+            // Track
+            let track = NSBezierPath()
+            track.appendArc(withCenter: center, radius: radius, startAngle: 0, endAngle: 360)
+            NSColor.gray.withAlphaComponent(0.3).setStroke()
+            track.lineWidth = lineWidth
+            track.stroke()
+
+            // Fill
+            if percent > 0 {
+                let fill = NSBezierPath()
+                let startAngle: CGFloat = 90 // top
+                let endAngle: CGFloat = 90 - (CGFloat(percent) / 100.0 * 360)
+                fill.appendArc(withCenter: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+                NSColor.white.setStroke()
+                fill.lineWidth = lineWidth
+                fill.lineCapStyle = .round
+                fill.stroke()
+            }
+
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 }
 

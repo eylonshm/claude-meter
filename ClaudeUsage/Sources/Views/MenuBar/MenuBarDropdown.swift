@@ -11,9 +11,11 @@ struct MenuBarDropdown: View {
             VStack(alignment: .leading, spacing: 10) {
                 headerRow
                 quotaCard
-                statsCard
                 if !service.modelBreakdowns.isEmpty {
                     modelCard
+                }
+                if settings.showLifetime, let cache = service.statsCache {
+                    lifetimeCard(cache)
                 }
                 footerRow
             }
@@ -44,7 +46,7 @@ struct MenuBarDropdown: View {
     @ViewBuilder
     private var panelBackground: some View {
         if #available(macOS 26, *) {
-            Color.clear // macOS 26 popover gets glass automatically
+            Color.clear
         } else {
             colors.background
         }
@@ -94,37 +96,36 @@ struct MenuBarDropdown: View {
         .glassCard(cornerRadius: 10)
     }
 
-    // MARK: - Stats Card
-
-    private var statsCard: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if service.todayStats.messages > 0 {
-                SectionHeader(title: "Today")
-                statsRows(service.todayStats)
-            } else if let cache = service.statsCache,
-                      let lastDay = cache.dailyActivity.last {
-                SectionHeader(title: "Latest (\(lastDay.date))")
-                StatRow(label: "Messages", value: formatNumber(lastDay.messageCount))
-                StatRow(label: "Sessions", value: formatNumber(lastDay.sessionCount))
-                StatRow(label: "Tool Calls", value: formatNumber(lastDay.toolCallCount))
-            }
-
-            if let cache = service.statsCache {
-                SectionDivider()
-                SectionHeader(title: "Lifetime")
-                StatRow(label: "Messages", value: formatNumber(cache.totalMessages))
-                StatRow(label: "Sessions", value: formatNumber(cache.totalSessions))
-            }
-        }
-        .glassCard(cornerRadius: 10)
-    }
-
     // MARK: - Model Card
 
     private var modelCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             SectionHeader(title: "Models")
             ModelBar(breakdowns: service.modelBreakdowns)
+        }
+        .glassCard(cornerRadius: 10)
+    }
+
+    // MARK: - Lifetime Card
+
+    private func lifetimeCard(_ cache: StatsCache) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                SectionHeader(title: "Lifetime")
+                Spacer()
+                Button(action: { settings.showLifetime = false }) {
+                    Image(systemName: "eye.slash")
+                        .foregroundColor(colors.muted)
+                        .font(.system(size: 10))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.bottom, 2)
+            StatRow(label: "Messages", value: formatNumber(cache.totalMessages))
+            StatRow(label: "Sessions", value: formatNumber(cache.totalSessions))
+            if let firstDate = cache.firstSessionDate {
+                StatRow(label: "Since", value: String(firstDate.prefix(10)))
+            }
         }
         .glassCard(cornerRadius: 10)
     }
@@ -139,6 +140,11 @@ struct MenuBarDropdown: View {
                     .foregroundColor(colors.muted)
             }
             Spacer()
+            glassButton(icon: "arrow.up.right.square") {
+                if let url = URL(string: "https://claude.ai/settings/usage") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
             glassButton(icon: "gear") {
                 SettingsWindowController.shared.open()
             }
@@ -171,14 +177,5 @@ struct MenuBarDropdown: View {
                 .overlay(Circle().stroke(Color.white.opacity(0.04), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
-    }
-
-    private func statsRows(_ stats: PeriodStats) -> some View {
-        Group {
-            StatRow(label: "Messages", value: formatNumber(stats.messages))
-            StatRow(label: "Sessions", value: formatNumber(stats.sessions))
-            StatRow(label: "Tool Calls", value: formatNumber(stats.toolCalls))
-            StatRow(label: "Tokens", value: formatTokens(stats.tokens))
-        }
     }
 }
