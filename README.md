@@ -44,7 +44,16 @@ No API keys, no OAuth, no cloud services. Everything is local.
 
 ## Installation
 
-### Option 1: Download DMG (Recommended)
+### Option 1: Homebrew (Recommended)
+
+```bash
+brew tap eylonshm/tap
+brew install --cask claude-usage-widget
+```
+
+This automatically handles Gatekeeper -- no extra steps needed.
+
+### Option 2: Download DMG
 
 1. Go to the [Releases](https://github.com/eylonshm/claude-usage-widget/releases) page
 2. Download `ClaudeUsage-x.x.x.dmg`
@@ -74,7 +83,7 @@ xattr -cr /Applications/Claude\ Usage.app
 ```
 Then open the app normally.
 
-### Option 2: Build from Source
+### Option 3: Build from Source
 
 ```bash
 # Prerequisites: Xcode 15+, xcodegen
