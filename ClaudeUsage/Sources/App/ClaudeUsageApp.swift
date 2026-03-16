@@ -73,11 +73,13 @@ struct ClaudeUsageApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     static weak var shared: AppDelegate?
     var updaterController: SPUStandardUpdaterController!
+    var updaterViewModel: UpdaterViewModel!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
 
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+        updaterViewModel = UpdaterViewModel(updater: updaterController.updater)
 
         let settings = AppSettings.shared
         let isFirstLaunch = !UserDefaults.standard.bool(forKey: "hasLaunchedBefore")

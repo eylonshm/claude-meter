@@ -268,29 +268,9 @@ struct SettingsTab: View {
                 .glassCard(cornerRadius: 12)
 
                 // Updates
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Updates")
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            AppDelegate.shared?.updaterController.updater.checkForUpdates()
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.down.circle")
-                                Text("Check for Updates")
-                            }
-                            .font(ThemeTypography.caption)
-                            .foregroundColor(colors.accent)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.white.opacity(0.02), in: Capsule())
-                            .overlay(Capsule().stroke(Color.white.opacity(0.04), lineWidth: 0.5))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.top, 4)
+                if let updater = AppDelegate.shared?.updaterViewModel {
+                    UpdatesSection(updater: updater)
                 }
-                .glassCard(cornerRadius: 12)
             }
             .padding(20)
         }
@@ -314,6 +294,78 @@ struct SettingsTab: View {
                 .foregroundColor(colors.muted)
                 .frame(width: 60)
         }
+    }
+}
+
+// MARK: - Updates Section
+
+struct UpdatesSection: View {
+    @ObservedObject var updater: UpdaterViewModel
+    private var colors: ThemeColors { AppSettings.shared.colors }
+
+    private let intervalOptions: [(label: String, seconds: TimeInterval)] = [
+        ("Daily",   86400),
+        ("Weekly",  604800),
+        ("Monthly", 2592000),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Updates")
+
+            Toggle("Automatically check for updates", isOn: $updater.automaticallyChecksForUpdates)
+                .font(ThemeTypography.body)
+                .foregroundColor(colors.text)
+
+            if updater.automaticallyChecksForUpdates {
+                HStack {
+                    Text("Check frequency")
+                        .font(ThemeTypography.body)
+                        .foregroundColor(colors.text)
+                    Spacer()
+                    Picker("", selection: $updater.updateCheckInterval) {
+                        ForEach(intervalOptions, id: \.seconds) { option in
+                            Text(option.label).tag(option.seconds)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 200)
+                }
+
+                Toggle("Automatically download and install updates", isOn: $updater.automaticallyDownloadsUpdates)
+                    .font(ThemeTypography.body)
+                    .foregroundColor(colors.text)
+            }
+
+            HStack {
+                if let lastChecked = updater.lastUpdateCheckDate {
+                    Text("Last checked: \(lastChecked, style: .relative) ago")
+                        .font(ThemeTypography.caption)
+                        .foregroundColor(colors.muted)
+                } else {
+                    Text("Never checked")
+                        .font(ThemeTypography.caption)
+                        .foregroundColor(colors.muted)
+                }
+                Spacer()
+                Button(action: { updater.checkForUpdates() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.down.circle")
+                        Text("Check Now")
+                    }
+                    .font(ThemeTypography.caption)
+                    .foregroundColor(updater.canCheckForUpdates ? colors.accent : colors.muted)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.white.opacity(0.02), in: Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.04), lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
+                .disabled(!updater.canCheckForUpdates)
+            }
+            .padding(.top, 2)
+        }
+        .glassCard(cornerRadius: 12)
     }
 }
 
