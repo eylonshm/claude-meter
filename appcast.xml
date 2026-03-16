@@ -2,8 +2,17 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
   <channel>
     <title>Claude Usage Widget</title>
-    <description>Most recent updates to Claude Usage Widget</description>
-    <language>en</language>
-    <!-- Items are appended automatically by the release CI workflow -->
+    <item>
+      <title>Version 1.2.1</title>
+      <sparkle:version>1.2.1</sparkle:version>
+      <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Mon, 16 Mar 2026 16:24:18 +0000</pubDate>
+      <enclosure
+        url="https://github.com/eylonshm/claude-usage-widget/releases/download/v1.2.1/ClaudeUsage-1.2.1.dmg"
+        sparkle:edSignature="Qm8CXtFUbq5cRqATZvPUKgrnMOeDNvo5iYz5I6YDlewy/kncm/Y7eiVDQAnB7gUU0CBsAAlNzqhoKjOQfC8aAw=="
+        length="1270807"
+        type="application/octet-stream"/>
+    </item>
   </channel>
 </rss>
