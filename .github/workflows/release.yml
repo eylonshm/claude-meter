@@ -91,7 +91,7 @@ jobs:
           DMG_URL="https://github.com/eylonshm/claude-usage-widget/releases/download/${{ github.ref_name }}/ClaudeUsage-${{ steps.version.outputs.VERSION }}.dmg"
 
           # Sign the DMG and capture the EdDSA signature
-          SIGNATURE=$(/tmp/bin/sign_update "$DMG_PATH" "$SPARKLE_PRIVATE_KEY")
+          SIGNATURE=$(echo "$SPARKLE_PRIVATE_KEY" | /tmp/bin/sign_update --ed-key-file - -p "$DMG_PATH")
           LENGTH=$(wc -c < "$DMG_PATH" | tr -d ' ')
 
           cat > appcast.xml <<EOF
