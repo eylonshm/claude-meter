@@ -87,7 +87,8 @@ WEEKLY_SONNET_RESET=${WEEKLY_SONNET_RESET:-"—"}
 # Clean up reset strings: add spaces back around known words
 clean_reset() {
     echo "$1" | tr -d '\r\n' | sed 's/ *$//' \
-        | sed 's/Mar/ Mar /g; s/at/ at /g; s/pm/pm /g; s/am/am /g' \
+        | sed 's/Jan/ Jan /g; s/Feb/ Feb /g; s/Mar/ Mar /g; s/Apr/ Apr /g; s/May/ May /g; s/Jun/ Jun /g; s/Jul/ Jul /g; s/Aug/ Aug /g; s/Sep/ Sep /g; s/Oct/ Oct /g; s/Nov/ Nov /g; s/Dec/ Dec /g' \
+        | sed 's/at/ at /g; s/pm/pm /g; s/am/am /g' \
         | sed 's/(/ (/g' | tr -s ' ' | sed 's/ *$//'
 }
 SESSION_RESET=$(clean_reset "$SESSION_RESET")

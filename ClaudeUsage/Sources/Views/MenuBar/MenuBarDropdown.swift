@@ -72,21 +72,27 @@ struct MenuBarDropdown: View {
 
     private var quotaCard: some View {
         VStack(spacing: 8) {
-            ProgressBarView(
-                value: Double(service.quota.sessionPercent),
-                label: "Session",
-                detail: "Resets \(service.quota.sessionResetTime)"
-            )
-            ProgressBarView(
-                value: Double(service.quota.weeklyAllPercent),
-                label: "Weekly (all models)",
-                detail: "Resets \(service.quota.weeklyAllResetTime)"
-            )
-            ProgressBarView(
-                value: Double(service.quota.weeklySonnetPercent),
-                label: "Weekly (Sonnet)",
-                detail: "Resets \(service.quota.weeklySonnetResetTime)"
-            )
+            if service.quota.sessionResetTime != "—" {
+                ProgressBarView(
+                    value: Double(service.quota.sessionPercent),
+                    label: "Session",
+                    detail: "Resets \(service.quota.sessionResetTime)"
+                )
+            }
+            if service.quota.weeklyAllResetTime != "—" {
+                ProgressBarView(
+                    value: Double(service.quota.weeklyAllPercent),
+                    label: "Weekly (all models)",
+                    detail: "Resets \(service.quota.weeklyAllResetTime)"
+                )
+            }
+            if service.quota.weeklySonnetResetTime != "—" {
+                ProgressBarView(
+                    value: Double(service.quota.weeklySonnetPercent),
+                    label: "Weekly (Sonnet)",
+                    detail: "Resets \(service.quota.weeklySonnetResetTime)"
+                )
+            }
             if let error = service.quotaError {
                 Text(error)
                     .font(ThemeTypography.caption)

@@ -52,21 +52,27 @@ struct UsageTab: View {
                 if service.quotaError == nil || service.quota != .empty {
                     VStack(spacing: 10) {
                         SectionHeader(title: "Quota")
-                        ProgressBarView(
-                            value: Double(service.quota.sessionPercent),
-                            label: "Session",
-                            detail: "Resets \(service.quota.sessionResetTime)"
-                        )
-                        ProgressBarView(
-                            value: Double(service.quota.weeklyAllPercent),
-                            label: "Weekly (all models)",
-                            detail: "Resets \(service.quota.weeklyAllResetTime)"
-                        )
-                        ProgressBarView(
-                            value: Double(service.quota.weeklySonnetPercent),
-                            label: "Weekly (Sonnet)",
-                            detail: "Resets \(service.quota.weeklySonnetResetTime)"
-                        )
+                        if service.quota.sessionResetTime != "—" {
+                            ProgressBarView(
+                                value: Double(service.quota.sessionPercent),
+                                label: "Session",
+                                detail: "Resets \(service.quota.sessionResetTime)"
+                            )
+                        }
+                        if service.quota.weeklyAllResetTime != "—" {
+                            ProgressBarView(
+                                value: Double(service.quota.weeklyAllPercent),
+                                label: "Weekly (all models)",
+                                detail: "Resets \(service.quota.weeklyAllResetTime)"
+                            )
+                        }
+                        if service.quota.weeklySonnetResetTime != "—" {
+                            ProgressBarView(
+                                value: Double(service.quota.weeklySonnetPercent),
+                                label: "Weekly (Sonnet)",
+                                detail: "Resets \(service.quota.weeklySonnetResetTime)"
+                            )
+                        }
                     }
                     .glassCard(cornerRadius: 12)
                 }
