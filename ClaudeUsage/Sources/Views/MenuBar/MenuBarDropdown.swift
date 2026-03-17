@@ -57,9 +57,10 @@ struct MenuBarDropdown: View {
 
     private var headerRow: some View {
         HStack {
-            Image(systemName: "sparkles")
-                .foregroundColor(colors.accent)
-                .font(.system(size: 14))
+            Image("MenuBarIcon")
+                .resizable()
+                .frame(width: 20, height: 20)
+                .offset(y: -2)
             Text("Claude Usage")
                 .font(ThemeTypography.heading)
                 .foregroundColor(colors.text)
@@ -70,37 +71,47 @@ struct MenuBarDropdown: View {
 
     // MARK: - Quota Card
 
+    private var hasQuotaContent: Bool {
+        service.quota.sessionResetTime != "—" ||
+        service.quota.weeklyAllResetTime != "—" ||
+        service.quota.weeklySonnetResetTime != "—" ||
+        service.quotaError != nil
+    }
+
+    @ViewBuilder
     private var quotaCard: some View {
-        VStack(spacing: 8) {
-            if service.quota.sessionResetTime != "—" {
-                ProgressBarView(
-                    value: Double(service.quota.sessionPercent),
-                    label: "Session",
-                    detail: "Resets \(service.quota.sessionResetTime)"
-                )
+        if hasQuotaContent {
+            VStack(spacing: 8) {
+                if service.quota.sessionResetTime != "—" {
+                    ProgressBarView(
+                        value: Double(service.quota.sessionPercent),
+                        label: "Session",
+                        detail: "Resets \(service.quota.sessionResetTime)"
+                    )
+                }
+                if service.quota.weeklyAllResetTime != "—" {
+                    ProgressBarView(
+                        value: Double(service.quota.weeklyAllPercent),
+                        label: "Weekly (all models)",
+                        detail: "Resets \(service.quota.weeklyAllResetTime)"
+                    )
+                }
+                if service.quota.weeklySonnetResetTime != "—" {
+                    ProgressBarView(
+                        value: Double(service.quota.weeklySonnetPercent),
+                        label: "Weekly (Sonnet)",
+                        detail: "Resets \(service.quota.weeklySonnetResetTime)"
+                    )
+                }
+                if let error = service.quotaError {
+                    Text(error)
+                        .font(ThemeTypography.caption)
+                        .foregroundColor(colors.accent)
+                        .lineLimit(2)
+                }
             }
-            if service.quota.weeklyAllResetTime != "—" {
-                ProgressBarView(
-                    value: Double(service.quota.weeklyAllPercent),
-                    label: "Weekly (all models)",
-                    detail: "Resets \(service.quota.weeklyAllResetTime)"
-                )
-            }
-            if service.quota.weeklySonnetResetTime != "—" {
-                ProgressBarView(
-                    value: Double(service.quota.weeklySonnetPercent),
-                    label: "Weekly (Sonnet)",
-                    detail: "Resets \(service.quota.weeklySonnetResetTime)"
-                )
-            }
-            if let error = service.quotaError {
-                Text(error)
-                    .font(ThemeTypography.caption)
-                    .foregroundColor(colors.accent)
-                    .lineLimit(2)
-            }
+            .glassCard(cornerRadius: 10)
         }
-        .glassCard(cornerRadius: 10)
     }
 
     // MARK: - Model Card

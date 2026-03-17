@@ -30,7 +30,9 @@ struct ClaudeUsageApp: App {
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
         default: // iconAndPercent
             HStack(spacing: 3) {
-                Image(systemName: "sparkles")
+                Image("MenuBarIcon")
+                    .resizable()
+                    .frame(width: 16, height: 16)
                 Text(hasData ? "\(pct)%" : "—")
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
             }
