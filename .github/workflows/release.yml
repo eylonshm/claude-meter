@@ -50,14 +50,16 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s \
             -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-      - name: Build Release (signed)
+      - name: Build Release (unsigned)
         run: |
           xcodebuild \
             -project ClaudeUsage.xcodeproj \
             -scheme ClaudeUsage \
             -configuration Release \
             build \
-            DEVELOPMENT_TEAM="9WM2J36V23" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             CONFIGURATION_BUILD_DIR="$(pwd)/build"
 
       - name: Embed widget extension and resources
@@ -67,6 +69,22 @@ jobs:
           mkdir -p "build/Claude Usage.app/Contents/Resources"
           cp ClaudeUsage/Resources/fetch-quota.sh "build/Claude Usage.app/Contents/Resources/"
           chmod +x "build/Claude Usage.app/Contents/Resources/fetch-quota.sh"
+
+      - name: Sign app with Developer ID
+        run: |
+          # Sign the widget extension first (inner bundles must be signed before outer)
+          codesign --force --sign "Developer ID Application" \
+            --options runtime \
+            --entitlements ClaudeUsageWidget/Resources/ClaudeUsageWidget.entitlements \
+            "build/Claude Usage.app/Contents/PlugIns/ClaudeUsageWidgetExtension.appex"
+          # Sign the main app
+          codesign --force --sign "Developer ID Application" \
+            --options runtime \
+            --entitlements ClaudeUsage/Resources/ClaudeUsage.entitlements \
+            "build/Claude Usage.app"
+          # Verify
+          codesign --verify --deep --strict "build/Claude Usage.app"
+          echo "Signed by: $(codesign -dv 'build/Claude Usage.app' 2>&1 | grep Authority | head -1)"
 
       - name: Get version
         id: version
