@@ -4,16 +4,31 @@ import ServiceManagement
 struct SettingsWindow: View {
     @State private var selectedTab = 0
     @ObservedObject var settings = AppSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
+    private var colors: ThemeColors { settings.effectiveColors(for: colorScheme) }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            UsageTab()
-                .tabItem { Label("Usage", systemImage: "chart.bar") }
-                .tag(0)
-            SettingsTab()
-                .tabItem { Label("Settings", systemImage: "gear") }
-                .tag(1)
+        VStack(spacing: 0) {
+            Picker("", selection: $selectedTab) {
+                Label("Usage", systemImage: "chart.bar").tag(0)
+                Label("Settings", systemImage: "gear").tag(1)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+
+            Divider().opacity(0.3)
+
+            Group {
+                if selectedTab == 0 {
+                    UsageTab()
+                } else {
+                    SettingsTab()
+                }
+            }
         }
+        .background(colors.background)
         .frame(minWidth: 480, minHeight: 560)
     }
 }
