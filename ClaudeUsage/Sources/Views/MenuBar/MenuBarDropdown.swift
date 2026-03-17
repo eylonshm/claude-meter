@@ -3,8 +3,9 @@ import SwiftUI
 struct MenuBarDropdown: View {
     @ObservedObject var service = UsageDataService.shared
     @ObservedObject var settings = AppSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
 
-    private var colors: ThemeColors { settings.colors }
+    private var colors: ThemeColors { settings.effectiveColors(for: colorScheme) }
 
     var body: some View {
         glassContainer {
@@ -49,7 +50,7 @@ struct MenuBarDropdown: View {
         if #available(macOS 26, *) {
             Color.clear
         } else {
-            colors.background
+            colors.background.ignoresSafeArea()
         }
     }
 
@@ -57,10 +58,6 @@ struct MenuBarDropdown: View {
 
     private var headerRow: some View {
         HStack {
-            Image("MenuBarIcon")
-                .resizable()
-                .frame(width: 20, height: 20)
-                .offset(y: -2)
             Text("Claude Usage")
                 .font(ThemeTypography.heading)
                 .foregroundColor(colors.text)
@@ -228,8 +225,8 @@ struct MenuBarDropdown: View {
                 .foregroundColor(colors.muted)
                 .font(.system(size: 12))
                 .frame(width: 28, height: 28)
-                .background(Color.white.opacity(0.02), in: Circle())
-                .overlay(Circle().stroke(Color.white.opacity(0.04), lineWidth: 0.5))
+                .background(Color.primary.opacity(0.04), in: Circle())
+                .overlay(Circle().stroke(Color.primary.opacity(0.07), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
     }

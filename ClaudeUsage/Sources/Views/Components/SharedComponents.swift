@@ -4,10 +4,12 @@ import SwiftUI
 
 struct SectionDivider: View {
     @ObservedObject private var settings = AppSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
+    private var colors: ThemeColors { settings.effectiveColors(for: colorScheme) }
 
     var body: some View {
         Rectangle()
-            .fill(settings.colors.muted.opacity(0.2))
+            .fill(colors.muted.opacity(0.2))
             .frame(height: 0.5)
             .padding(.vertical, 2)
     }
@@ -19,16 +21,18 @@ struct StatRow: View {
     let label: String
     let value: String
     @ObservedObject private var settings = AppSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
+    private var colors: ThemeColors { settings.effectiveColors(for: colorScheme) }
 
     var body: some View {
         HStack {
             Text(label)
                 .font(ThemeTypography.body)
-                .foregroundColor(settings.colors.muted)
+                .foregroundColor(colors.muted)
             Spacer()
             Text(value)
                 .font(ThemeTypography.body)
-                .foregroundColor(settings.colors.text)
+                .foregroundColor(colors.text)
         }
     }
 }
@@ -38,11 +42,13 @@ struct StatRow: View {
 struct SectionHeader: View {
     let title: String
     @ObservedObject private var settings = AppSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
+    private var colors: ThemeColors { settings.effectiveColors(for: colorScheme) }
 
     var body: some View {
         Text(title.uppercased())
             .font(ThemeTypography.caption)
-            .foregroundColor(settings.colors.muted)
+            .foregroundColor(colors.muted)
             .tracking(1.2)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -53,12 +59,14 @@ struct SectionHeader: View {
 struct ModelBar: View {
     let breakdowns: [ModelBreakdown]
     @ObservedObject private var settings = AppSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
+    private var colors: ThemeColors { settings.effectiveColors(for: colorScheme) }
 
     private func colorForModel(_ name: String) -> Color {
         if name.contains("Opus") { return Color(red: 0.694, green: 0.725, blue: 0.976) }
         if name.contains("Sonnet") { return Color(red: 0.843, green: 0.467, blue: 0.341) }
         if name.contains("Haiku") { return Color(red: 0.298, green: 0.686, blue: 0.314) }
-        return settings.colors.muted
+        return colors.muted
     }
 
     var body: some View {
@@ -83,14 +91,14 @@ struct ModelBar: View {
                         .frame(width: 8, height: 8)
                     Text(model.displayName)
                         .font(ThemeTypography.caption)
-                        .foregroundColor(settings.colors.muted)
+                        .foregroundColor(colors.muted)
                     Spacer()
                     Text(formatTokens(model.tokens))
                         .font(ThemeTypography.caption)
-                        .foregroundColor(settings.colors.text)
+                        .foregroundColor(colors.text)
                     Text("(\(Int(model.percentage))%)")
                         .font(ThemeTypography.caption)
-                        .foregroundColor(settings.colors.muted)
+                        .foregroundColor(colors.muted)
                 }
             }
         }

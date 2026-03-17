@@ -59,7 +59,7 @@ struct ClaudeUsageApp: App {
                 let startAngle: CGFloat = 90 // top
                 let endAngle: CGFloat = 90 - (CGFloat(percent) / 100.0 * 360)
                 fill.appendArc(withCenter: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
-                NSColor.white.setStroke()
+                NSColor.labelColor.setStroke()
                 fill.lineWidth = lineWidth
                 fill.lineCapStyle = .round
                 fill.stroke()

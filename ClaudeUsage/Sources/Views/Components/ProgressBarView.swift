@@ -5,8 +5,9 @@ struct ProgressBarView: View {
     let label: String
     let detail: String
     @ObservedObject private var settings = AppSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
 
-    private var colors: ThemeColors { settings.colors }
+    private var colors: ThemeColors { settings.effectiveColors(for: colorScheme) }
     private var isWarning: Bool { value >= settings.warningThreshold }
     private var fillColor: Color { isWarning ? colors.accent : colors.primary }
 
@@ -49,8 +50,9 @@ struct CircularProgressView: View {
     let value: Double
     let label: String
     @ObservedObject private var settings = AppSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
 
-    private var colors: ThemeColors { settings.colors }
+    private var colors: ThemeColors { settings.effectiveColors(for: colorScheme) }
     private var isWarning: Bool { value >= settings.warningThreshold }
 
     var body: some View {

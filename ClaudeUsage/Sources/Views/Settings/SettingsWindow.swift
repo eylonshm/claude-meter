@@ -23,8 +23,9 @@ struct SettingsWindow: View {
 struct UsageTab: View {
     @ObservedObject var service = UsageDataService.shared
     @ObservedObject var settings = AppSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
 
-    private var colors: ThemeColors { settings.colors }
+    private var colors: ThemeColors { settings.effectiveColors(for: colorScheme) }
 
     var body: some View {
         ScrollView {
@@ -149,8 +150,9 @@ struct UsageTab: View {
 struct SettingsTab: View {
     @ObservedObject var settings = AppSettings.shared
     @ObservedObject var service = UsageDataService.shared
+    @Environment(\.colorScheme) private var colorScheme
 
-    private var colors: ThemeColors { settings.colors }
+    private var colors: ThemeColors { settings.effectiveColors(for: colorScheme) }
 
     var body: some View {
         ScrollView {
@@ -250,8 +252,8 @@ struct SettingsTab: View {
                             .foregroundColor(colors.accent)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
-                            .background(Color.white.opacity(0.02), in: Capsule())
-                            .overlay(Capsule().stroke(Color.white.opacity(0.04), lineWidth: 0.5))
+                            .background(Color.primary.opacity(0.05), in: Capsule())
+                            .overlay(Capsule().stroke(Color.primary.opacity(0.08), lineWidth: 0.5))
                         }
                         .buttonStyle(.plain)
                     }
@@ -296,7 +298,8 @@ struct SettingsTab: View {
 
 struct UpdatesSection: View {
     @ObservedObject var updater: UpdaterViewModel
-    private var colors: ThemeColors { AppSettings.shared.colors }
+    @Environment(\.colorScheme) private var colorScheme
+    private var colors: ThemeColors { AppSettings.shared.effectiveColors(for: colorScheme) }
 
     private let intervalOptions: [(label: String, seconds: TimeInterval)] = [
         ("Daily",   86400),
@@ -352,8 +355,8 @@ struct UpdatesSection: View {
                     .foregroundColor(updater.canCheckForUpdates ? colors.accent : colors.muted)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(Color.white.opacity(0.02), in: Capsule())
-                    .overlay(Capsule().stroke(Color.white.opacity(0.04), lineWidth: 0.5))
+                    .background(Color.primary.opacity(0.05), in: Capsule())
+                    .overlay(Capsule().stroke(Color.primary.opacity(0.08), lineWidth: 0.5))
                 }
                 .buttonStyle(.plain)
                 .disabled(!updater.canCheckForUpdates)
@@ -370,7 +373,8 @@ struct AdvancedSection: View {
     @State private var cliPath: String = AppSettings.shared.cliPath
     @State private var showInfoTooltip: Bool = false
     @FocusState private var isFocused: Bool
-    private var colors: ThemeColors { AppSettings.shared.colors }
+    @Environment(\.colorScheme) private var colorScheme
+    private var colors: ThemeColors { AppSettings.shared.effectiveColors(for: colorScheme) }
 
     private func save() {
         AppSettings.shared.cliPath = cliPath

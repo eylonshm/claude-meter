@@ -22,6 +22,17 @@ struct ThemeColors {
         success: Color(red: 0.298, green: 0.686, blue: 0.314),
         warning: Color(red: 1.0, green: 0.596, blue: 0.0)
     )
+
+    static let lightMode = ThemeColors(
+        background: Color(NSColor.windowBackgroundColor),
+        surface: Color(NSColor.controlBackgroundColor),
+        primary: Color(red: 0.25, green: 0.32, blue: 0.72),
+        accent: Color(red: 0.78, green: 0.35, blue: 0.18),
+        text: Color(NSColor.labelColor),
+        muted: Color(NSColor.secondaryLabelColor),
+        success: Color(red: 0.18, green: 0.56, blue: 0.22),
+        warning: Color(red: 0.80, green: 0.45, blue: 0.0)
+    )
 }
 
 // MARK: - Theme Typography
@@ -44,12 +55,12 @@ extension View {
         self
             .padding(12)
             .background(
-                Color.white.opacity(0.02),
+                Color.primary.opacity(0.04),
                 in: RoundedRectangle(cornerRadius: cornerRadius)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(Color.white.opacity(0.04), lineWidth: 0.5)
+                    .stroke(Color.primary.opacity(0.07), lineWidth: 0.5)
             )
     }
 
@@ -97,6 +108,10 @@ final class AppSettings: ObservableObject {
             success: ThemeColors.defaults.success,
             warning: Color(hex: warningHex) ?? ThemeColors.defaults.warning
         )
+    }
+
+    func effectiveColors(for colorScheme: ColorScheme) -> ThemeColors {
+        colorScheme == .dark ? colors : .lightMode
     }
 
     func resetColors() {
