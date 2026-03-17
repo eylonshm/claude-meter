@@ -8,8 +8,7 @@ struct ClaudeUsageApp: App {
     @StateObject private var service = UsageDataService.shared
     @StateObject private var settings = AppSettings.shared
     @AppStorage("showMenuBar") private var showMenuBar: Bool = true
-    // Loading phase: 0–360, driven by a sine wave so the fill breathes smoothly 0→100→0→…
-    @State private var spinnerAngle: Double = 180
+    @State private var spinnerAngle: Double = 0
     private let spinnerTimer = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
 
     var body: some Scene {
@@ -25,18 +24,19 @@ struct ClaudeUsageApp: App {
     private var menuBarLabel: some View {
         let pct = service.quota.sessionPercent
         let hasData = !(service.quotaError != nil && service.quota == .empty)
-        let isLoading = service.isRefreshing || !service.hasLoadedOnce
+        // Show loading spinner only until the first load completes.
+        // Background refreshes update silently — no spinner in the menu bar.
+        let isLoading = !service.hasLoadedOnce
 
         if isLoading {
-            // Sine-eased oscillation: fill breathes 0→100→0→… over 2 s with smooth ease-in/out.
-            // Driven by absolute time so easing is frame-rate-independent and jitter-free.
+            // Two sine waves at golden-ratio frequencies so they never perfectly sync —
+            // the fill breathes organically and the pattern never feels mechanical.
             Image(nsImage: progressCircleImage(percent: Int(spinnerAngle / 360.0 * 100)))
                 .onReceive(spinnerTimer) { date in
-                    let period = 2.0 // seconds per breath
-                    let t = date.timeIntervalSince1970.truncatingRemainder(dividingBy: period) / period
-                    // sin maps t ∈ [0,1] → smooth 0→1→0 without any hard jump
-                    let eased = (sin(t * 2 * .pi - .pi / 2) + 1) / 2
-                    spinnerAngle = eased * 360
+                    let t = date.timeIntervalSince1970
+                    let slow = (sin(t * .pi / 1.9 - .pi / 2) + 1) / 2   // ~3.8 s period
+                    let fast = (sin(t * .pi / 1.18 - .pi / 2) + 1) / 2  // ~2.36 s period (≈ φ × slow)
+                    spinnerAngle = (slow * 0.65 + fast * 0.35) * 360
                 }
         } else {
             switch settings.menuBarStyle {
