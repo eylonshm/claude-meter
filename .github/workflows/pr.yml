@@ -110,18 +110,16 @@ jobs:
           # Delete existing release/tag for this PR if present
           gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
 
-          # Create fresh draft pre-release and capture the URL
-          RELEASE_URL=$(gh release create "$TAG" \
+          # Create fresh draft pre-release
+          gh release create "$TAG" \
             --title "$TITLE" \
             --notes "Preview build for PR #${{ github.event.pull_request.number }}" \
             --draft \
             --prerelease \
-            "dist/${DMG}" \
-            --json url --jq '.url')
+            "dist/${DMG}"
 
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${DMG}"
-          echo "DOWNLOAD_URL=${DOWNLOAD_URL}" >> $GITHUB_OUTPUT
-          echo "RELEASE_URL=${RELEASE_URL}" >> $GITHUB_OUTPUT
+          echo "DOWNLOAD_URL=https://github.com/${{ github.repository }}/releases/download/${TAG}/${DMG}" >> $GITHUB_OUTPUT
+          echo "RELEASE_URL=https://github.com/${{ github.repository }}/releases/tag/${TAG}" >> $GITHUB_OUTPUT
 
       - name: Post or update PR comment
         uses: actions/github-script@v7
