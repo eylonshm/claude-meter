@@ -244,3 +244,63 @@ jobs:
             ## Requirements
             - macOS 14 (Sonoma) or later
             - [Claude Code CLI](https://claude.ai/code) installed and authenticated
+
+      - name: Update Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          DMG="dist/ClaudeUsage-${VERSION}.dmg"
+          SHA256=$(shasum -a 256 "$DMG" | awk '{print $1}')
+
+          CASK=$(cat <<EOF
+          cask "claude-usage-widget" do
+            version "${VERSION}"
+            sha256 "${SHA256}"
+
+            url "https://github.com/eylonshm/claude-usage-widget/releases/download/v\#{version}/ClaudeUsage-\#{version}.dmg"
+            name "Claude Usage Widget"
+            desc "macOS menu bar app and desktop widgets for monitoring Claude Code usage and quota"
+            homepage "https://github.com/eylonshm/claude-usage-widget"
+
+            livecheck do
+              url :url
+              strategy :github_latest
+            end
+
+            depends_on macos: ">= :sonoma"
+
+            app "Claude Usage.app"
+
+            postflight do
+              system_command "/usr/bin/xattr",
+                             args: ["-cr", "\#{appdir}/Claude Usage.app"],
+                             sudo: false
+            end
+
+            zap trash: [
+              "~/Library/Preferences/com.claudeusage.app.plist",
+              "~/Library/Application Support/Claude Usage",
+              "~/Library/Caches/com.claudeusage.app",
+            ]
+          end
+          EOF
+          )
+
+          CURRENT_SHA=$(curl -s -H "Authorization: token $TAP_TOKEN" \
+            "https://api.github.com/repos/eylonshm/homebrew-tap/contents/Casks/claude-usage-widget.rb" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['sha'])")
+
+          curl -s -X PUT \
+            -H "Authorization: token $TAP_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/eylonshm/homebrew-tap/contents/Casks/claude-usage-widget.rb" \
+            -d "$(python3 -c "
+          import json, sys, base64
+          content = sys.stdin.read()
+          print(json.dumps({
+            'message': 'chore: bump claude-usage-widget to v${VERSION}',
+            'sha': '${CURRENT_SHA}',
+            'content': base64.b64encode(content.encode()).decode()
+          }))
+          " <<< "$CASK")"
