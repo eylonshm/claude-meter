@@ -73,24 +73,25 @@ jobs:
       - name: Sign app with Developer ID
         run: |
           APP="build/Claude Usage.app"
-          SIGN="codesign --force --sign Developer ID Application --options runtime --timestamp"
+          sign() {
+            codesign --force --sign "Developer ID Application" --options runtime --timestamp "$@"
+          }
 
-          # 1. Sign plain Mach-O binaries inside Sparkle that are not bundles
-          #    (e.g. Autoupdate, XPCServices helpers) — bottom-up before frameworks
-          find "$APP/Contents/Frameworks/Sparkle.framework" -type f | while read f; do
+          # 1. Sign plain Mach-O binaries inside Sparkle (e.g. Autoupdate helper)
+          find "$APP/Contents/Frameworks/Sparkle.framework" -type f | while read -r f; do
             if file "$f" 2>/dev/null | grep -q "Mach-O"; then
-              $SIGN "$f"
+              sign "$f"
             fi
           done
 
-          # 2. Sign Sparkle XPC service bundles
+          # 2. Sign Sparkle XPC service and nested app bundles
           find "$APP/Contents/Frameworks/Sparkle.framework" \( -name "*.xpc" -o -name "*.app" \) | \
-            sort -r | while read bundle; do
-              $SIGN "$bundle"
+            sort -r | while read -r bundle; do
+              sign "$bundle"
             done
 
           # 3. Sign the Sparkle framework itself
-          $SIGN "$APP/Contents/Frameworks/Sparkle.framework"
+          sign "$APP/Contents/Frameworks/Sparkle.framework"
 
           # 4. Sign the widget extension
           codesign --force --sign "Developer ID Application" \
