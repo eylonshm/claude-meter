@@ -32,6 +32,9 @@ jobs:
           # Regenerate project with the runner's Xcode version
           rm -rf ClaudeUsage.xcodeproj
           xcodegen generate
+          # Force Manual signing in the generated project (xcodegen ignores CODE_SIGN_STYLE in settings)
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ClaudeUsage.xcodeproj/project.pbxproj
+          sed -i '' 's/ProvisioningStyle = Automatic/ProvisioningStyle = Manual/g' ClaudeUsage.xcodeproj/project.pbxproj
 
       - name: Import signing certificate
         env:
