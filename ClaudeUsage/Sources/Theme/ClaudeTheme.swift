@@ -87,7 +87,7 @@ final class AppSettings: ObservableObject {
     @AppStorage("cliPath") var cliPath: String = ""
     @AppStorage("showLifetime") var showLifetime: Bool = true
     @AppStorage("showSessionPercent") var showSessionPercent: Bool = true
-    @AppStorage("menuBarStyle") var menuBarStyle: String = "iconAndPercent" // "iconAndPercent", "percentOnly", "progressCircle"
+    @AppStorage("menuBarStyle") var menuBarStyle: String = "progressCircle" // "iconAndPercent", "percentOnly", "progressCircle"
 
     @AppStorage("color_background") var backgroundHex: String = "1A1A2E"
     @AppStorage("color_surface") var surfaceHex: String = "16213E"
