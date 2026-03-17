@@ -1,6 +1,6 @@
 # Local Testing
 
-After making any code changes, rebuild and reinstall the app locally so the user can test immediately.
+After making any code changes, rebuild and reinstall the app locally so the user can test immediately. Always kill the running instance and use `rm -rf` before copying — never use a shortcut install.
 
 ```bash
 xcodegen generate
