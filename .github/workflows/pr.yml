@@ -1,0 +1,152 @@
+name: PR Build & Preview Release
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  build:
+    if: github.event.action != 'closed'
+    runs-on: macos-15
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      dmg: ${{ steps.dmg.outputs.DMG }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: |
+          LATEST_XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using: $LATEST_XCODE"
+          sudo xcode-select -s "$LATEST_XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: Install tools
+        run: brew install xcodegen create-dmg
+
+      - name: Generate Xcode project
+        run: |
+          rm -rf ClaudeUsage.xcodeproj
+          xcodegen generate
+
+      - name: Build (unsigned)
+        run: |
+          xcodebuild \
+            -project ClaudeUsage.xcodeproj \
+            -scheme ClaudeUsage \
+            -configuration Release \
+            build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CONFIGURATION_BUILD_DIR="$(pwd)/build"
+
+      - name: Embed widget extension and resources
+        run: |
+          mkdir -p "build/Claude Usage.app/Contents/PlugIns"
+          cp -R "build/ClaudeUsageWidgetExtension.appex" "build/Claude Usage.app/Contents/PlugIns/"
+          mkdir -p "build/Claude Usage.app/Contents/Resources"
+          cp ClaudeUsage/Resources/fetch-quota.sh "build/Claude Usage.app/Contents/Resources/"
+          chmod +x "build/Claude Usage.app/Contents/Resources/fetch-quota.sh"
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep 'MARKETING_VERSION' project.yml | head -1 | awk -F'"' '{print $2}')
+          echo "VERSION=${VERSION}-pr.${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+
+      - name: Create DMG
+        id: dmg
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          DMG="ClaudeUsage-${VERSION}.dmg"
+
+          ICONSET=$(mktemp -d)/AppIcon.iconset
+          mkdir -p "$ICONSET"
+          ASSET=ClaudeUsage/Sources/Assets.xcassets/AppIcon.appiconset
+          cp "$ASSET/icon_16x16.png"      "$ICONSET/icon_16x16.png"
+          cp "$ASSET/icon_16x16@2x.png"   "$ICONSET/icon_16x16@2x.png"
+          cp "$ASSET/icon_32x32.png"      "$ICONSET/icon_32x32.png"
+          cp "$ASSET/icon_32x32@2x.png"   "$ICONSET/icon_32x32@2x.png"
+          cp "$ASSET/icon_128x128.png"    "$ICONSET/icon_128x128.png"
+          cp "$ASSET/icon_128x128@2x.png" "$ICONSET/icon_128x128@2x.png"
+          cp "$ASSET/icon_256x256.png"    "$ICONSET/icon_256x256.png"
+          cp "$ASSET/icon_256x256@2x.png" "$ICONSET/icon_256x256@2x.png"
+          cp "$ASSET/icon_512x512.png"    "$ICONSET/icon_512x512.png"
+          cp "$ASSET/icon_512x512@2x.png" "$ICONSET/icon_512x512@2x.png"
+          iconutil -c icns "$ICONSET" -o /tmp/AppIcon.icns
+
+          mkdir -p dist
+          create-dmg \
+            --volname "Claude Usage" \
+            --volicon /tmp/AppIcon.icns \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "Claude Usage.app" 175 190 \
+            --hide-extension "Claude Usage.app" \
+            --app-drop-link 425 190 \
+            --no-internet-enable \
+            "dist/${DMG}" \
+            "build/Claude Usage.app" || \
+          hdiutil create \
+            -volname "Claude Usage" \
+            -srcfolder "build/Claude Usage.app" \
+            -ov -format UDZO \
+            "dist/${DMG}"
+
+          echo "DMG=${DMG}" >> $GITHUB_OUTPUT
+
+      - name: Create or update draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="pr-${{ github.event.pull_request.number }}"
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          DMG="${{ steps.dmg.outputs.DMG }}"
+          TITLE="PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+
+          BODY="## Preview Build (unsigned)
+
+          Built from PR #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}
+
+          > ⚠️ This is an **unsigned** preview build for testing only. Not notarized.
+          > You may need to right-click → Open to bypass Gatekeeper.
+
+          **Branch:** \`${{ github.head_ref }}\`
+          **Commit:** ${{ github.event.pull_request.head.sha }}
+
+          ### Install
+          1. Download \`${DMG}\`
+          2. Open the DMG and drag **Claude Usage** to Applications
+          3. Right-click the app → Open (to bypass unsigned warning)"
+
+          # Delete existing release/tag for this PR if present
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+
+          # Create fresh draft pre-release
+          gh release create "$TAG" \
+            --title "$TITLE" \
+            --notes "$BODY" \
+            --draft \
+            --prerelease \
+            "dist/${DMG}"
+
+  cleanup:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete draft release and tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="pr-${{ github.event.pull_request.number }}"
+          gh release delete "$TAG" \
+            --yes \
+            --cleanup-tag \
+            --repo "${{ github.repository }}" \
+          2>/dev/null || echo "No release found for $TAG — nothing to clean up"
