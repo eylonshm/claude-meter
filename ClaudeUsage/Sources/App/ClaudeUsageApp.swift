@@ -7,6 +7,9 @@ struct ClaudeUsageApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var service = UsageDataService.shared
     @StateObject private var settings = AppSettings.shared
+    // Loading phase: 0–360, driven by a sine wave so the fill breathes smoothly 0→100→0→…
+    @State private var spinnerAngle: Double = 180
+    private let spinnerTimer = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
 
     var body: some Scene {
         // Menu Bar
@@ -21,20 +24,34 @@ struct ClaudeUsageApp: App {
     private var menuBarLabel: some View {
         let pct = service.quota.sessionPercent
         let hasData = !(service.quotaError != nil && service.quota == .empty)
+        let isLoading = service.isRefreshing || !service.hasLoadedOnce
 
-        switch settings.menuBarStyle {
-        case "progressCircle":
-            Image(nsImage: progressCircleImage(percent: hasData ? pct : 0))
-        case "percentOnly":
-            Text(hasData ? "\(pct)%" : "—")
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-        default: // iconAndPercent
-            HStack(spacing: 3) {
-                Image("MenuBarIcon")
-                    .resizable()
-                    .frame(width: 16, height: 16)
+        if isLoading {
+            // Sine-eased oscillation: fill breathes 0→100→0→… over 2 s with smooth ease-in/out.
+            // Driven by absolute time so easing is frame-rate-independent and jitter-free.
+            Image(nsImage: progressCircleImage(percent: Int(spinnerAngle / 360.0 * 100)))
+                .onReceive(spinnerTimer) { date in
+                    let period = 2.0 // seconds per breath
+                    let t = date.timeIntervalSince1970.truncatingRemainder(dividingBy: period) / period
+                    // sin maps t ∈ [0,1] → smooth 0→1→0 without any hard jump
+                    let eased = (sin(t * 2 * .pi - .pi / 2) + 1) / 2
+                    spinnerAngle = eased * 360
+                }
+        } else {
+            switch settings.menuBarStyle {
+            case "progressCircle":
+                Image(nsImage: progressCircleImage(percent: hasData ? pct : 0))
+            case "percentOnly":
                 Text(hasData ? "\(pct)%" : "—")
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+            default: // iconAndPercent
+                HStack(spacing: 3) {
+                    Image("MenuBarIcon")
+                        .resizable()
+                        .frame(width: 16, height: 16)
+                    Text(hasData ? "\(pct)%" : "—")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                }
             }
         }
     }

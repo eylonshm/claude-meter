@@ -14,7 +14,8 @@ final class UsageDataService: ObservableObject {
     @Published var monthStats: PeriodStats = PeriodStats()
     @Published var modelBreakdowns: [ModelBreakdown] = []
     @Published var lastUpdated: Date?
-    @Published var isRefreshing: Bool = false
+    @Published var isRefreshing: Bool = true  // true from launch so the menu bar shows loading immediately
+    @Published var hasLoadedOnce: Bool = false
     @Published var quotaError: String?
     @Published var statsError: String?
 
@@ -22,6 +23,7 @@ final class UsageDataService: ObservableObject {
     private let quotaFetcher = QuotaFetcher()
     private var refreshTimer: Timer?
     private var sessionResetTimer: Timer?
+    private var refreshInProgress = false
     private let settings = AppSettings.shared
 
     // Parsed reset date exposed to views for the countdown banner
@@ -34,7 +36,8 @@ final class UsageDataService: ObservableObject {
     // MARK: - Refresh
 
     func refresh() async {
-        guard !isRefreshing else { return }
+        guard !refreshInProgress else { return }
+        refreshInProgress = true
         isRefreshing = true
 
         async let statsResult: Void = fetchStats()
@@ -45,6 +48,8 @@ final class UsageDataService: ObservableObject {
 
         lastUpdated = Date()
         isRefreshing = false
+        hasLoadedOnce = true
+        refreshInProgress = false
 
         writeWidgetData()
         WidgetCenter.shared.reloadAllTimelines()
