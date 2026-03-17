@@ -250,57 +250,57 @@ jobs:
           TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          DMG="dist/ClaudeUsage-${VERSION}.dmg"
-          SHA256=$(shasum -a 256 "$DMG" | awk '{print $1}')
+          SHA256=$(shasum -a 256 "dist/ClaudeUsage-${VERSION}.dmg" | awk '{print $1}')
 
-          CASK=$(cat <<EOF
-          cask "claude-usage-widget" do
-            version "${VERSION}"
-            sha256 "${SHA256}"
+          # Build cask using placeholders to avoid quoting issues with Ruby #{...} syntax
+          CASK=$(cat <<'CASK_EOF'
+cask "claude-usage-widget" do
+  version "VERSION_PLACEHOLDER"
+  sha256 "SHA256_PLACEHOLDER"
 
-            url "https://github.com/eylonshm/claude-usage-widget/releases/download/v\#{version}/ClaudeUsage-\#{version}.dmg"
-            name "Claude Usage Widget"
-            desc "macOS menu bar app and desktop widgets for monitoring Claude Code usage and quota"
-            homepage "https://github.com/eylonshm/claude-usage-widget"
+  url "https://github.com/eylonshm/claude-usage-widget/releases/download/v#{version}/ClaudeUsage-#{version}.dmg"
+  name "Claude Usage Widget"
+  desc "macOS menu bar app and desktop widgets for monitoring Claude Code usage and quota"
+  homepage "https://github.com/eylonshm/claude-usage-widget"
 
-            livecheck do
-              url :url
-              strategy :github_latest
-            end
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
 
-            depends_on macos: ">= :sonoma"
+  depends_on macos: ">= :sonoma"
 
-            app "Claude Usage.app"
+  app "Claude Usage.app"
 
-            postflight do
-              system_command "/usr/bin/xattr",
-                             args: ["-cr", "\#{appdir}/Claude Usage.app"],
-                             sudo: false
-            end
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-cr", "#{appdir}/Claude Usage.app"],
+                   sudo: false
+  end
 
-            zap trash: [
-              "~/Library/Preferences/com.claudeusage.app.plist",
-              "~/Library/Application Support/Claude Usage",
-              "~/Library/Caches/com.claudeusage.app",
-            ]
-          end
-          EOF
+  zap trash: [
+    "~/Library/Preferences/com.claudeusage.app.plist",
+    "~/Library/Application Support/Claude Usage",
+    "~/Library/Caches/com.claudeusage.app",
+  ]
+end
+CASK_EOF
           )
+          CASK="${CASK/VERSION_PLACEHOLDER/$VERSION}"
+          CASK="${CASK/SHA256_PLACEHOLDER/$SHA256}"
 
-          CURRENT_SHA=$(curl -s -H "Authorization: token $TAP_TOKEN" \
+          ENCODED=$(printf '%s' "$CASK" | base64)
+          CURRENT_SHA=$(curl -sf -H "Authorization: token $TAP_TOKEN" \
             "https://api.github.com/repos/eylonshm/homebrew-tap/contents/Casks/claude-usage-widget.rb" \
             | python3 -c "import sys,json; print(json.load(sys.stdin)['sha'])")
 
-          curl -s -X PUT \
+          jq -n \
+            --arg message "chore: bump claude-usage-widget to v${VERSION}" \
+            --arg sha "$CURRENT_SHA" \
+            --arg content "$ENCODED" \
+            '{message: $message, sha: $sha, content: $content}' \
+          | curl -sf -X PUT \
             -H "Authorization: token $TAP_TOKEN" \
             -H "Content-Type: application/json" \
             "https://api.github.com/repos/eylonshm/homebrew-tap/contents/Casks/claude-usage-widget.rb" \
-            -d "$(python3 -c "
-          import json, sys, base64
-          content = sys.stdin.read()
-          print(json.dumps({
-            'message': 'chore: bump claude-usage-widget to v${VERSION}',
-            'sha': '${CURRENT_SHA}',
-            'content': base64.b64encode(content.encode()).decode()
-          }))
-          " <<< "$CASK")"
+            -d @-
