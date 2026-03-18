@@ -159,8 +159,10 @@ jobs:
             { echo "❌ NSExtensionPointIdentifier missing or wrong: '$POINT'"; hdiutil detach "$MOUNT" -quiet; exit 1; }
 
           # 4. Sandbox entitlement is true (required by pkd / pluginkit)
-          SANDBOX=$(codesign -d --entitlements - "$WIDGET" 2>/dev/null | \
-            /usr/libexec/PlistBuddy -c "Print :com.apple.security.app-sandbox" /dev/stdin 2>/dev/null)
+          # PR builds are unsigned so we read from the source entitlements file
+          # (xcodegen regenerates this from project.yml before the build)
+          SANDBOX=$(/usr/libexec/PlistBuddy -c "Print :com.apple.security.app-sandbox" \
+            ClaudeUsageWidget/Resources/ClaudeUsageWidget.entitlements 2>/dev/null)
           [ "$SANDBOX" = "true" ] || \
             { echo "❌ app-sandbox entitlement is '$SANDBOX', must be true"; hdiutil detach "$MOUNT" -quiet; exit 1; }
 
