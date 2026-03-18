@@ -77,6 +77,45 @@ echo "📂 Installing..."
 cp -R "$MOUNT/Claude Usage.app" "/Applications/Claude Usage.app"
 hdiutil detach "$MOUNT" -quiet
 
+# ── 6. Re-sign with local Developer ID so widgets register with pluginkit ─────
+# PR builds are unsigned. Without a valid Developer ID signature, pluginkit
+# rejects the widget extension with "plug-ins must be sandboxed".
+CERT=$(security find-identity -v -p codesigning 2>/dev/null \
+  | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
+
+if [ -n "$CERT" ]; then
+  echo "🔏 Signing with: $CERT"
+  APP="/Applications/Claude Usage.app"
+  REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+  _sign() { codesign --force --sign "$CERT" --options runtime --timestamp "$@"; }
+
+  # Sparkle helpers
+  find "$APP/Contents/Frameworks/Sparkle.framework" -type f | while read -r f; do
+    file "$f" 2>/dev/null | grep -q "Mach-O" && _sign "$f"
+  done
+  find "$APP/Contents/Frameworks/Sparkle.framework" \( -name "*.xpc" -o -name "*.app" \) | \
+    sort -r | while read -r b; do _sign "$b"; done
+  _sign "$APP/Contents/Frameworks/Sparkle.framework"
+
+  # Widget extension (must be signed before parent app)
+  codesign --force --sign "$CERT" --options runtime --timestamp \
+    --entitlements "$REPO_DIR/ClaudeUsageWidget/Resources/ClaudeUsageWidget.entitlements" \
+    "$APP/Contents/PlugIns/ClaudeUsageWidgetExtension.appex"
+
+  # Main app
+  codesign --force --sign "$CERT" --options runtime --timestamp \
+    --entitlements "$REPO_DIR/ClaudeUsage/Resources/ClaudeUsage.entitlements" \
+    "$APP"
+
+  codesign --verify --deep --strict "$APP" \
+    && echo "✅ Signature valid" \
+    || echo "⚠️  Signature verification failed — widgets may not appear"
+else
+  echo "⚠️  No Developer ID Application cert found — skipping re-sign."
+  echo "   Widgets may not appear in the gallery without a valid signature."
+fi
+
 echo "🚀 Launching..."
 open "/Applications/Claude Usage.app"
 
