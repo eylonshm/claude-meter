@@ -212,8 +212,9 @@ final class UsageDataService: ObservableObject {
         // Write into the widget extension's own sandboxed container (Documents/).
         // The non-sandboxed main app can write here freely; the widget reads via
         // its standard .documentDirectory — no App Group provisioning required.
-        let containerURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Containers/\(AppConstants.widgetBundleIdentifier)/Data/Documents")
+        guard let libraryURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first else { return }
+        let containerURL = libraryURL
+            .appendingPathComponent("Containers/\(AppConstants.widgetBundleIdentifier)/Data/Documents")
         try? FileManager.default.createDirectory(at: containerURL, withIntermediateDirectories: true)
 
         let widgetBreakdowns = modelBreakdowns.map {
