@@ -209,9 +209,11 @@ final class UsageDataService: ObservableObject {
     // MARK: - Widget Data Sharing
 
     private func writeWidgetData() {
-        guard let containerURL = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: AppConstants.appGroupIdentifier
-        ) else { return }
+        // containerURL returns nil for non-sandboxed apps, so construct the path manually.
+        // The widget (sandboxed) reads from the same location via containerURL.
+        let containerURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Group Containers/\(AppConstants.appGroupIdentifier)")
+        try? FileManager.default.createDirectory(at: containerURL, withIntermediateDirectories: true)
 
         let widgetBreakdowns = modelBreakdowns.map {
             WidgetModelBreakdown(name: $0.name, displayName: $0.displayName, tokens: $0.tokens, percentage: $0.percentage)
