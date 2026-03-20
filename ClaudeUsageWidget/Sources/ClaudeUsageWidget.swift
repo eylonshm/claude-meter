@@ -35,10 +35,6 @@ struct UsageTimelineProvider: TimelineProvider {
         return UsageEntry(
             date: widgetData.lastUpdated,
             quota: widgetData.quota,
-            todayMessages: widgetData.todayMessages,
-            todaySessions: widgetData.todaySessions,
-            todayToolCalls: widgetData.todayToolCalls,
-            todayTokens: widgetData.todayTokens,
             modelBreakdowns: widgetData.modelBreakdowns,
             warningThreshold: widgetData.warningThreshold,
             isPlaceholder: false
@@ -51,16 +47,9 @@ struct UsageTimelineProvider: TimelineProvider {
 struct UsageEntry: TimelineEntry {
     let date: Date
     let quota: QuotaData
-    let todayMessages: Int
-    let todaySessions: Int
-    let todayToolCalls: Int
-    let todayTokens: Int
     let modelBreakdowns: [WidgetModelBreakdown]
     let warningThreshold: Double
     let isPlaceholder: Bool
-
-    /// True when there is no stats data for today (all counters are zero).
-    var hasTodayStats: Bool { todayMessages > 0 || todaySessions > 0 || todayToolCalls > 0 }
 
     static let placeholder = UsageEntry(
         date: Date(),
@@ -69,10 +58,6 @@ struct UsageEntry: TimelineEntry {
             weeklyAllPercent: 0, weeklyAllResetTime: "—",
             weeklySonnetPercent: 0, weeklySonnetResetTime: "—"
         ),
-        todayMessages: 0,
-        todaySessions: 0,
-        todayToolCalls: 0,
-        todayTokens: 0,
         modelBreakdowns: [],
         warningThreshold: 80,
         isPlaceholder: true
@@ -145,24 +130,6 @@ private struct QuotaRow: View {
     }
 }
 
-/// A compact stat line: label + formatted value
-private struct StatLine: View {
-    let label: String
-    let value: Int
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(label)
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(widgetFormatCompact(value))
-                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundStyle(.primary)
-        }
-    }
-}
-
 // MARK: - Small Widget
 
 struct SmallWidgetView: View {
@@ -227,19 +194,18 @@ struct SmallWidgetView: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                if entry.hasTodayStats {
-                    Divider().frame(height: 24).opacity(0.4)
+                Divider().frame(height: 24).opacity(0.4)
 
-                    VStack(spacing: 1) {
-                        Text(widgetFormatCompact(entry.todayMessages))
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.primary)
-                        Text("msgs")
-                            .font(.system(size: 7, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
+                VStack(spacing: 1) {
+                    Text(entry.isPlaceholder ? "—" : "\(entry.quota.weeklySonnetPercent)%")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle((!entry.isPlaceholder && Double(entry.quota.weeklySonnetPercent) >= entry.warningThreshold)
+                            ? Color.widgetAccent(colorScheme) : Color.primary)
+                    Text("sonnet")
+                        .font(.system(size: 7, design: .monospaced))
+                        .foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity)
             }
         }
         .padding(10)
@@ -254,51 +220,26 @@ struct MediumWidgetView: View {
     let entry: UsageEntry
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Quota bars
-            VStack(alignment: .leading, spacing: 7) {
-                Text("Quota")
-                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                QuotaRow(label: "Session",
-                         percent: entry.quota.sessionPercent,
-                         reset: entry.quota.sessionResetTime,
-                         warningThreshold: entry.warningThreshold)
-                QuotaRow(label: "Weekly",
-                         percent: entry.quota.weeklyAllPercent,
-                         reset: entry.quota.weeklyAllResetTime,
-                         warningThreshold: entry.warningThreshold)
-                QuotaRow(label: "Sonnet",
-                         percent: entry.quota.weeklySonnetPercent,
-                         reset: entry.quota.weeklySonnetResetTime,
-                         warningThreshold: entry.warningThreshold)
-            }
-            .frame(maxWidth: .infinity)
-
-            if entry.isPlaceholder || entry.hasTodayStats {
-                Divider().opacity(0.4)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Today")
-                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                    if entry.isPlaceholder {
-                        Text("Loading…")
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    } else {
-                        StatLine(label: "msgs", value: entry.todayMessages)
-                        StatLine(label: "sessions", value: entry.todaySessions)
-                        StatLine(label: "tools", value: entry.todayToolCalls)
-                        StatLine(label: "tokens", value: entry.todayTokens)
-                    }
-                }
-                .frame(width: 88)
-            }
+        VStack(alignment: .leading, spacing: 7) {
+            Text("Quota")
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.secondary)
+            QuotaRow(label: "Session",
+                     percent: entry.quota.sessionPercent,
+                     reset: entry.quota.sessionResetTime,
+                     warningThreshold: entry.warningThreshold)
+            QuotaRow(label: "Weekly (all)",
+                     percent: entry.quota.weeklyAllPercent,
+                     reset: entry.quota.weeklyAllResetTime,
+                     warningThreshold: entry.warningThreshold)
+            QuotaRow(label: "Weekly (Sonnet)",
+                     percent: entry.quota.weeklySonnetPercent,
+                     reset: entry.quota.weeklySonnetResetTime,
+                     warningThreshold: entry.warningThreshold)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .widgetGlassBackground()
     }
 }
@@ -352,31 +293,6 @@ struct LargeWidgetView: View {
             }
             .padding(.bottom, 8)
 
-            if entry.isPlaceholder || entry.hasTodayStats {
-                widgetDivider
-
-                Text("Today")
-                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
-
-                if entry.isPlaceholder {
-                    Text("Loading…")
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .padding(.bottom, 8)
-                } else {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 5) {
-                        statCell("Messages", value: entry.todayMessages)
-                        statCell("Sessions", value: entry.todaySessions)
-                        statCell("Tool Calls", value: entry.todayToolCalls)
-                        statCell("Tokens", value: entry.todayTokens)
-                    }
-                    .padding(.bottom, 8)
-                }
-            }
-
             // Model distribution
             if !entry.modelBreakdowns.isEmpty {
                 widgetDivider
@@ -425,22 +341,6 @@ struct LargeWidgetView: View {
         Rectangle()
             .fill(Color.primary.opacity(0.08))
             .frame(height: 0.5)
-    }
-
-    private func statCell(_ label: String, value: Int) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(widgetFormatCompact(value))
-                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundStyle(.primary)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.primary.opacity(0.07), lineWidth: 0.5))
     }
 
     private func colorForModel(_ name: String) -> Color {
