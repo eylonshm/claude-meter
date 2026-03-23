@@ -6,7 +6,7 @@ Users currently have no in-app way to discover or install updates — they must 
 
 - Add Sparkle 2 as an SPM dependency in `project.yml`
 - Generate an EdDSA key pair; embed the public key in `Info.plist` (`SUPublicEDKey`) and store the private key as a GitHub Actions secret
-- Add `SUFeedURL` to `Info.plist` pointing to `https://raw.githubusercontent.com/eylonshm/claude-usage-widget/main/appcast.xml`
+- Add `SUFeedURL` to `Info.plist` pointing to `https://raw.githubusercontent.com/eylonshm/claude-meter/main/appcast.xml`
 - Wire up `SPUStandardUpdaterController` in `AppDelegate` (init on launch, check on first launch)
 - Add "Check for Updates" button to the Settings tab in `SettingsWindow.swift`
 - Extend the GitHub Actions release workflow to sign the DMG with `generate_appcast`, then commit the updated `appcast.xml` back to `main`
@@ -21,10 +21,10 @@ Users currently have no in-app way to discover or install updates — they must 
 
 ## Impact
 
-- **`project.yml`**: new `packages` section for Sparkle SPM; new dependency on `ClaudeUsage` target
-- **`ClaudeUsage/Resources/Info.plist`**: two new keys (`SUFeedURL`, `SUPublicEDKey`)
-- **`ClaudeUsage/Sources/App/ClaudeUsageApp.swift`**: `AppDelegate` gains `SPUStandardUpdaterController` property
-- **`ClaudeUsage/Sources/Views/Settings/SettingsWindow.swift`**: new "Check for Updates" row in `SettingsTab`
+- **`project.yml`**: new `packages` section for Sparkle SPM; new dependency on `ClaudeMeter` target
+- **`ClaudeMeter/Resources/Info.plist`**: two new keys (`SUFeedURL`, `SUPublicEDKey`)
+- **`ClaudeMeter/Sources/App/ClaudeMeterApp.swift`**: `AppDelegate` gains `SPUStandardUpdaterController` property
+- **`ClaudeMeter/Sources/Views/Settings/SettingsWindow.swift`**: new "Check for Updates" row in `SettingsTab`
 - **`.github/workflows/release.yml`**: install Sparkle tools, run `generate_appcast`, commit `appcast.xml`
 - **`appcast.xml`** (new file at repo root): Sparkle feed, committed and updated on each release
 - **GitHub Actions secrets**: `SPARKLE_PRIVATE_KEY` must be added by the maintainer

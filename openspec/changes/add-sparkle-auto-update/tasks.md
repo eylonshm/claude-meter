@@ -7,15 +7,15 @@
 ## 2. Project Configuration
 
 - [x] 2.1 Add a `packages` section to `project.yml` declaring the Sparkle SPM package at `https://github.com/sparkle-project/Sparkle` pinned to version `2.7.0`
-- [x] 2.2 Add `Sparkle` as a linked framework dependency on the `ClaudeUsage` target in `project.yml`
-- [x] 2.3 Add `SUPublicEDKey` (the base64 public key from step 1.3) to the `ClaudeUsage` target's `info.properties` in `project.yml`
-- [x] 2.4 Add `SUFeedURL` set to `https://raw.githubusercontent.com/eylonshm/claude-usage-widget/main/appcast.xml` to the `ClaudeUsage` target's `info.properties` in `project.yml`
-- [x] 2.5 Add `SUEnableAutomaticChecks` set to `true` to the `ClaudeUsage` target's `info.properties` in `project.yml`
+- [x] 2.2 Add `Sparkle` as a linked framework dependency on the `ClaudeMeter` target in `project.yml`
+- [x] 2.3 Add `SUPublicEDKey` (the base64 public key from step 1.3) to the `ClaudeMeter` target's `info.properties` in `project.yml`
+- [x] 2.4 Add `SUFeedURL` set to `https://raw.githubusercontent.com/eylonshm/claude-meter/main/appcast.xml` to the `ClaudeMeter` target's `info.properties` in `project.yml`
+- [x] 2.5 Add `SUEnableAutomaticChecks` set to `true` to the `ClaudeMeter` target's `info.properties` in `project.yml`
 - [x] 2.6 Regenerate the Xcode project with `xcodegen generate` and verify it resolves the Sparkle package
 
 ## 3. AppDelegate Wiring
 
-- [x] 3.1 Import `Sparkle` at the top of `ClaudeUsageApp.swift`
+- [x] 3.1 Import `Sparkle` at the top of `ClaudeMeterApp.swift`
 - [x] 3.2 Add a `var updaterController: SPUStandardUpdaterController!` stored property to `AppDelegate`
 - [x] 3.3 In `applicationDidFinishLaunching`, initialize `updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)` before any other setup
 - [x] 3.4 Expose the updater via a static accessor (e.g., `AppDelegate.shared.updaterController.updater`) so the Settings view can call `checkForUpdates`

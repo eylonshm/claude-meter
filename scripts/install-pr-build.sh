@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-REPO="eylonshm/claude-usage-widget"
+REPO="eylonshm/claude-meter"
 
 # ── 1. Resolve PR number ──────────────────────────────────────────────────────
 PR="${1:-}"
@@ -67,14 +67,14 @@ MOUNT=$(mktemp -d)
 hdiutil attach "$DMG" -mountpoint "$MOUNT" -nobrowse -quiet
 
 echo "🛑 Stopping running instance..."
-pkill -x "Claude Usage" 2>/dev/null || true
+pkill -x "Claude Meter" 2>/dev/null || true
 sleep 2
 
 echo "🗑️  Removing old installation..."
-rm -rf "/Applications/Claude Usage.app"
+rm -rf "/Applications/Claude Meter.app"
 
 echo "📂 Installing..."
-cp -R "$MOUNT/Claude Usage.app" "/Applications/Claude Usage.app"
+cp -R "$MOUNT/Claude Meter.app" "/Applications/Claude Meter.app"
 hdiutil detach "$MOUNT" -quiet
 
 # ── 6. Re-sign with local Developer ID so widgets register with pluginkit ─────
@@ -85,7 +85,7 @@ CERT=$(security find-identity -v -p codesigning 2>/dev/null \
 
 if [ -n "$CERT" ]; then
   echo "🔏 Signing with: $CERT"
-  APP="/Applications/Claude Usage.app"
+  APP="/Applications/Claude Meter.app"
   REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
   _sign() { codesign --force --sign "$CERT" --options runtime --timestamp "$@"; }
@@ -100,12 +100,12 @@ if [ -n "$CERT" ]; then
 
   # Widget extension (must be signed before parent app)
   codesign --force --sign "$CERT" --options runtime --timestamp \
-    --entitlements "$REPO_DIR/ClaudeUsageWidget/Resources/ClaudeUsageWidget.entitlements" \
-    "$APP/Contents/PlugIns/ClaudeUsageWidgetExtension.appex"
+    --entitlements "$REPO_DIR/ClaudeMeterWidget/Resources/ClaudeMeterWidget.entitlements" \
+    "$APP/Contents/PlugIns/ClaudeMeterWidgetExtension.appex"
 
   # Main app
   codesign --force --sign "$CERT" --options runtime --timestamp \
-    --entitlements "$REPO_DIR/ClaudeUsage/Resources/ClaudeUsage.entitlements" \
+    --entitlements "$REPO_DIR/ClaudeMeter/Resources/ClaudeMeter.entitlements" \
     "$APP"
 
   codesign --verify --deep --strict "$APP" \
@@ -117,8 +117,8 @@ else
 fi
 
 echo "🚀 Launching..."
-open "/Applications/Claude Usage.app"
+open "/Applications/Claude Meter.app"
 
 echo ""
-echo "✅ Installed Claude Usage from PR #$PR build!"
+echo "✅ Installed Claude Meter from PR #$PR build!"
 echo "   To test widgets: right-click the desktop → Edit Widgets → search 'Claude'"

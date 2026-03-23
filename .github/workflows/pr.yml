@@ -66,14 +66,14 @@ jobs:
 
       - name: Generate Xcode project
         run: |
-          rm -rf ClaudeUsage.xcodeproj
+          rm -rf ClaudeMeter.xcodeproj
           xcodegen generate
 
       - name: Build (unsigned)
         run: |
           xcodebuild \
-            -project ClaudeUsage.xcodeproj \
-            -scheme ClaudeUsage \
+            -project ClaudeMeter.xcodeproj \
+            -scheme ClaudeMeter \
             -configuration Release \
             build \
             CODE_SIGN_IDENTITY="" \
@@ -83,11 +83,11 @@ jobs:
 
       - name: Embed widget extension and resources
         run: |
-          mkdir -p "build/Claude Usage.app/Contents/PlugIns"
-          cp -R "build/ClaudeUsageWidgetExtension.appex" "build/Claude Usage.app/Contents/PlugIns/"
-          mkdir -p "build/Claude Usage.app/Contents/Resources"
-          cp ClaudeUsage/Resources/fetch-quota.sh "build/Claude Usage.app/Contents/Resources/"
-          chmod +x "build/Claude Usage.app/Contents/Resources/fetch-quota.sh"
+          mkdir -p "build/Claude Meter.app/Contents/PlugIns"
+          cp -R "build/ClaudeMeterWidgetExtension.appex" "build/Claude Meter.app/Contents/PlugIns/"
+          mkdir -p "build/Claude Meter.app/Contents/Resources"
+          cp ClaudeMeter/Resources/fetch-quota.sh "build/Claude Meter.app/Contents/Resources/"
+          chmod +x "build/Claude Meter.app/Contents/Resources/fetch-quota.sh"
 
       - name: Get version
         id: version
@@ -99,11 +99,11 @@ jobs:
         id: dmg
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          DMG="ClaudeUsage-${VERSION}.dmg"
+          DMG="ClaudeMeter-${VERSION}.dmg"
 
           ICONSET=$(mktemp -d)/AppIcon.iconset
           mkdir -p "$ICONSET"
-          ASSET=ClaudeUsage/Sources/Assets.xcassets/AppIcon.appiconset
+          ASSET=ClaudeMeter/Sources/Assets.xcassets/AppIcon.appiconset
           cp "$ASSET/icon_16x16.png"      "$ICONSET/icon_16x16.png"
           cp "$ASSET/icon_16x16@2x.png"   "$ICONSET/icon_16x16@2x.png"
           cp "$ASSET/icon_32x32.png"      "$ICONSET/icon_32x32.png"
@@ -118,20 +118,20 @@ jobs:
 
           mkdir -p dist
           create-dmg \
-            --volname "Claude Usage" \
+            --volname "Claude Meter" \
             --volicon /tmp/AppIcon.icns \
             --window-pos 200 120 \
             --window-size 600 400 \
             --icon-size 100 \
-            --icon "Claude Usage.app" 175 190 \
-            --hide-extension "Claude Usage.app" \
+            --icon "Claude Meter.app" 175 190 \
+            --hide-extension "Claude Meter.app" \
             --app-drop-link 425 190 \
             --no-internet-enable \
             "dist/${DMG}" \
-            "build/Claude Usage.app" || \
+            "build/Claude Meter.app" || \
           hdiutil create \
-            -volname "Claude Usage" \
-            -srcfolder "build/Claude Usage.app" \
+            -volname "Claude Meter" \
+            -srcfolder "build/Claude Meter.app" \
             -ov -format UDZO \
             "dist/${DMG}"
 
@@ -143,8 +143,8 @@ jobs:
           MOUNT=$(mktemp -d)
           hdiutil attach "$DMG" -mountpoint "$MOUNT" -nobrowse -quiet
 
-          APP="$MOUNT/Claude Usage.app"
-          WIDGET="$APP/Contents/PlugIns/ClaudeUsageWidgetExtension.appex"
+          APP="$MOUNT/Claude Meter.app"
+          WIDGET="$APP/Contents/PlugIns/ClaudeMeterWidgetExtension.appex"
 
           # 1. App bundle exists
           [ -d "$APP" ] || { echo "❌ App bundle missing"; hdiutil detach "$MOUNT" -quiet; exit 1; }
@@ -162,7 +162,7 @@ jobs:
           # PR builds are unsigned so we read from the source entitlements file
           # (xcodegen regenerates this from project.yml before the build)
           SANDBOX=$(/usr/libexec/PlistBuddy -c "Print :com.apple.security.app-sandbox" \
-            ClaudeUsageWidget/Resources/ClaudeUsageWidget.entitlements 2>/dev/null)
+            ClaudeMeterWidget/Resources/ClaudeMeterWidget.entitlements 2>/dev/null)
           [ "$SANDBOX" = "true" ] || \
             { echo "❌ app-sandbox entitlement is '$SANDBOX', must be true"; hdiutil detach "$MOUNT" -quiet; exit 1; }
 

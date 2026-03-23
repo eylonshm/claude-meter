@@ -1,6 +1,6 @@
-name: ClaudeUsage
+name: ClaudeMeter
 options:
-  bundleIdPrefix: com.claudeusage
+  bundleIdPrefix: com.claudemeter
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "16.0"
@@ -19,81 +19,81 @@ settings:
     CODE_SIGN_IDENTITY: "Developer ID Application"
 
 targets:
-  ClaudeUsage:
+  ClaudeMeter:
     type: application
     platform: macOS
     sources:
-      - ClaudeUsage/Sources
+      - ClaudeMeter/Sources
     resources:
-      - path: ClaudeUsage/Resources/fetch-quota.sh
+      - path: ClaudeMeter/Resources/fetch-quota.sh
         buildPhase: resources
 
     info:
-      path: ClaudeUsage/Resources/Info.plist
+      path: ClaudeMeter/Resources/Info.plist
       properties:
         LSUIElement: true
-        CFBundleDisplayName: Claude Usage
+        CFBundleDisplayName: Claude Meter
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
-        SUFeedURL: https://raw.githubusercontent.com/eylonshm/claude-usage-widget/main/appcast.xml
+        SUFeedURL: https://raw.githubusercontent.com/eylonshm/claude-meter/main/appcast.xml
         SUPublicEDKey: /wx7c+JEZuhhQj1p0ULc87qrTGz9irqpwXDSz2BL2VI=
         SUEnableAutomaticChecks: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.claudeusage.app
-        CODE_SIGN_ENTITLEMENTS: ClaudeUsage/Resources/ClaudeUsage.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.claudemeter.app
+        CODE_SIGN_ENTITLEMENTS: ClaudeMeter/Resources/ClaudeMeter.entitlements
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "Developer ID Application"
         PROVISIONING_PROFILE_SPECIFIER: ""
-        PRODUCT_NAME: Claude Usage
+        PRODUCT_NAME: Claude Meter
         MARKETING_VERSION: "1.2.27"
         CURRENT_PROJECT_VERSION: "1"
     dependencies:
       - package: Sparkle
         product: Sparkle
     entitlements:
-      path: ClaudeUsage/Resources/ClaudeUsage.entitlements
+      path: ClaudeMeter/Resources/ClaudeMeter.entitlements
       properties:
         com.apple.security.app-sandbox: false
         com.apple.security.application-groups:
-          - group.com.claudeusage.shared
+          - group.com.claudemeter.shared
 
-  ClaudeUsageWidget:
+  ClaudeMeterWidget:
     type: app-extension
     platform: macOS
     sources:
-      - ClaudeUsageWidget/Sources
+      - ClaudeMeterWidget/Sources
     info:
-      path: ClaudeUsageWidget/Resources/Info.plist
+      path: ClaudeMeterWidget/Resources/Info.plist
       properties:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.claudeusage.app.widget
-        CODE_SIGN_ENTITLEMENTS: ClaudeUsageWidget/Resources/ClaudeUsageWidget.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.claudemeter.app.widget
+        CODE_SIGN_ENTITLEMENTS: ClaudeMeterWidget/Resources/ClaudeMeterWidget.entitlements
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "Developer ID Application"
         PROVISIONING_PROFILE_SPECIFIER: ""
-        PRODUCT_NAME: ClaudeUsageWidgetExtension
+        PRODUCT_NAME: ClaudeMeterWidgetExtension
         MARKETING_VERSION: "1.2.27"
         CURRENT_PROJECT_VERSION: "1"
     entitlements:
-      path: ClaudeUsageWidget/Resources/ClaudeUsageWidget.entitlements
+      path: ClaudeMeterWidget/Resources/ClaudeMeterWidget.entitlements
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.application-groups:
-          - group.com.claudeusage.shared
+          - group.com.claudemeter.shared
     dependencies:
-      - target: ClaudeUsage
+      - target: ClaudeMeter
         embed: false
         link: false
 
 schemes:
-  ClaudeUsage:
+  ClaudeMeter:
     build:
       targets:
-        ClaudeUsage: all
-        ClaudeUsageWidget: all
+        ClaudeMeter: all
+        ClaudeMeterWidget: all
     run:
       config: Debug

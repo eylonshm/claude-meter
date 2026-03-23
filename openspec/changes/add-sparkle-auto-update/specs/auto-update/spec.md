@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Sparkle dependency declared
-The project SHALL declare Sparkle 2 as an SPM package dependency in `project.yml` and link it to the `ClaudeUsage` target.
+The project SHALL declare Sparkle 2 as an SPM package dependency in `project.yml` and link it to the `ClaudeMeter` target.
 
 #### Scenario: XcodeGen resolves Sparkle
 - **WHEN** `xcodegen generate` is run
@@ -19,7 +19,7 @@ The app bundle SHALL contain the EdDSA public key as the `SUPublicEDKey` entry i
 ---
 
 ### Requirement: Appcast feed URL declared in app
-The app bundle SHALL contain an `SUFeedURL` entry in `Info.plist` pointing to `https://raw.githubusercontent.com/eylonshm/claude-usage-widget/main/appcast.xml`.
+The app bundle SHALL contain an `SUFeedURL` entry in `Info.plist` pointing to `https://raw.githubusercontent.com/eylonshm/claude-meter/main/appcast.xml`.
 
 #### Scenario: Feed URL resolved
 - **WHEN** Sparkle initiates an update check

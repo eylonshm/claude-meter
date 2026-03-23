@@ -38,7 +38,7 @@ jobs:
       - name: Generate Xcode project
         run: |
           # Regenerate project with the runner's Xcode version
-          rm -rf ClaudeUsage.xcodeproj
+          rm -rf ClaudeMeter.xcodeproj
           xcodegen generate
 
       - name: Import signing certificate
@@ -61,8 +61,8 @@ jobs:
       - name: Build Release (unsigned)
         run: |
           xcodebuild \
-            -project ClaudeUsage.xcodeproj \
-            -scheme ClaudeUsage \
+            -project ClaudeMeter.xcodeproj \
+            -scheme ClaudeMeter \
             -configuration Release \
             build \
             CODE_SIGN_IDENTITY="" \
@@ -72,15 +72,15 @@ jobs:
 
       - name: Embed widget extension and resources
         run: |
-          mkdir -p "build/Claude Usage.app/Contents/PlugIns"
-          cp -R "build/ClaudeUsageWidgetExtension.appex" "build/Claude Usage.app/Contents/PlugIns/"
-          mkdir -p "build/Claude Usage.app/Contents/Resources"
-          cp ClaudeUsage/Resources/fetch-quota.sh "build/Claude Usage.app/Contents/Resources/"
-          chmod +x "build/Claude Usage.app/Contents/Resources/fetch-quota.sh"
+          mkdir -p "build/Claude Meter.app/Contents/PlugIns"
+          cp -R "build/ClaudeMeterWidgetExtension.appex" "build/Claude Meter.app/Contents/PlugIns/"
+          mkdir -p "build/Claude Meter.app/Contents/Resources"
+          cp ClaudeMeter/Resources/fetch-quota.sh "build/Claude Meter.app/Contents/Resources/"
+          chmod +x "build/Claude Meter.app/Contents/Resources/fetch-quota.sh"
 
       - name: Sign app with Developer ID
         run: |
-          APP="build/Claude Usage.app"
+          APP="build/Claude Meter.app"
           sign() {
             codesign --force --sign "Developer ID Application" --options runtime --timestamp "$@"
           }
@@ -104,13 +104,13 @@ jobs:
           # 4. Sign the widget extension
           codesign --force --sign "Developer ID Application" \
             --options runtime --timestamp \
-            --entitlements ClaudeUsageWidget/Resources/ClaudeUsageWidget.entitlements \
-            "$APP/Contents/PlugIns/ClaudeUsageWidgetExtension.appex"
+            --entitlements ClaudeMeterWidget/Resources/ClaudeMeterWidget.entitlements \
+            "$APP/Contents/PlugIns/ClaudeMeterWidgetExtension.appex"
 
           # 5. Sign the main app
           codesign --force --sign "Developer ID Application" \
             --options runtime --timestamp \
-            --entitlements ClaudeUsage/Resources/ClaudeUsage.entitlements \
+            --entitlements ClaudeMeter/Resources/ClaudeMeter.entitlements \
             "$APP"
 
           # Verify
@@ -135,7 +135,7 @@ jobs:
           # Build a temporary icns for the DMG volume icon from asset catalog PNGs
           ICONSET=$(mktemp -d)/AppIcon.iconset
           mkdir -p "$ICONSET"
-          ASSET=ClaudeUsage/Sources/Assets.xcassets/AppIcon.appiconset
+          ASSET=ClaudeMeter/Sources/Assets.xcassets/AppIcon.appiconset
           cp "$ASSET/icon_16x16.png"      "$ICONSET/icon_16x16.png"
           cp "$ASSET/icon_16x16@2x.png"   "$ICONSET/icon_16x16@2x.png"
           cp "$ASSET/icon_32x32.png"      "$ICONSET/icon_32x32.png"
@@ -150,29 +150,29 @@ jobs:
 
           mkdir -p dist
           create-dmg \
-            --volname "Claude Usage" \
+            --volname "Claude Meter" \
             --volicon /tmp/AppIcon.icns \
             --window-pos 200 120 \
             --window-size 600 400 \
             --icon-size 100 \
-            --icon "Claude Usage.app" 175 190 \
-            --hide-extension "Claude Usage.app" \
+            --icon "Claude Meter.app" 175 190 \
+            --hide-extension "Claude Meter.app" \
             --app-drop-link 425 190 \
             --no-internet-enable \
-            "dist/ClaudeUsage-${{ steps.version.outputs.VERSION }}.dmg" \
-            "build/Claude Usage.app" || \
+            "dist/ClaudeMeter-${{ steps.version.outputs.VERSION }}.dmg" \
+            "build/Claude Meter.app" || \
           hdiutil create \
-            -volname "Claude Usage" \
-            -srcfolder "build/Claude Usage.app" \
+            -volname "Claude Meter" \
+            -srcfolder "build/Claude Meter.app" \
             -ov -format UDZO \
-            "dist/ClaudeUsage-${{ steps.version.outputs.VERSION }}.dmg"
+            "dist/ClaudeMeter-${{ steps.version.outputs.VERSION }}.dmg"
 
       - name: Notarize DMG
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
         run: |
-          DMG="dist/ClaudeUsage-${{ steps.version.outputs.VERSION }}.dmg"
+          DMG="dist/ClaudeMeter-${{ steps.version.outputs.VERSION }}.dmg"
           codesign --sign "Developer ID Application" "$DMG"
           # Submit and capture submission ID + result
           RESULT=$(xcrun notarytool submit "$DMG" \
@@ -204,8 +204,8 @@ jobs:
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          DMG_PATH="dist/ClaudeUsage-${{ steps.version.outputs.VERSION }}.dmg"
-          DMG_URL="https://github.com/eylonshm/claude-usage-widget/releases/download/v${{ steps.version.outputs.VERSION }}/ClaudeUsage-${{ steps.version.outputs.VERSION }}.dmg"
+          DMG_PATH="dist/ClaudeMeter-${{ steps.version.outputs.VERSION }}.dmg"
+          DMG_URL="https://github.com/eylonshm/claude-meter/releases/download/v${{ steps.version.outputs.VERSION }}/ClaudeMeter-${{ steps.version.outputs.VERSION }}.dmg"
 
           # Sign the DMG and capture the EdDSA signature
           SIGNATURE=$(echo "$SPARKLE_PRIVATE_KEY" | /tmp/bin/sign_update --ed-key-file - -p "$DMG_PATH")
@@ -215,7 +215,7 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
             <channel>
-              <title>Claude Usage Widget</title>
+              <title>Claude Meter Widget</title>
               <item>
                 <title>Version ${{ steps.version.outputs.VERSION }}</title>
                 <sparkle:version>${{ steps.version.outputs.VERSION }}</sparkle:version>
@@ -244,19 +244,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
-          files: dist/ClaudeUsage-*.dmg
+          files: dist/ClaudeMeter-*.dmg
           generate_release_notes: true
           body: |
             ## Installation
 
             ### Homebrew (recommended)
             ```bash
-            brew install --cask eylonshm/tap/claude-usage-widget
+            brew install --cask eylonshm/tap/claude-meter
             ```
 
             ### Manual DMG
-            1. Download `ClaudeUsage-${{ steps.version.outputs.VERSION }}.dmg`
-            2. Open the DMG and drag **Claude Usage** to your Applications folder
+            1. Download `ClaudeMeter-${{ steps.version.outputs.VERSION }}.dmg`
+            2. Open the DMG and drag **Claude Meter** to your Applications folder
 
             ## Requirements
             - macOS 14 (Sonoma) or later
@@ -267,5 +267,5 @@ jobs:
           TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          SHA256=$(shasum -a 256 "dist/ClaudeUsage-${VERSION}.dmg" | awk '{print $1}')
+          SHA256=$(shasum -a 256 "dist/ClaudeMeter-${VERSION}.dmg" | awk '{print $1}')
           bash scripts/update-tap.sh "$VERSION" "$SHA256" "$TAP_TOKEN"

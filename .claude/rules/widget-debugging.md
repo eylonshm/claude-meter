@@ -29,15 +29,15 @@ Common errors and fixes:
 ## 3. Verify the extension structure
 
 ```bash
-WIDGET="/Applications/Claude Usage.app/Contents/PlugIns/ClaudeUsageWidgetExtension.appex"
+WIDGET="/Applications/Claude Meter.app/Contents/PlugIns/ClaudeMeterWidgetExtension.appex"
 
 # Must have NSExtensionPointIdentifier
 /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$WIDGET/Contents/Info.plist"
 # Expected: com.apple.widgetkit-extension
 
 # Must have @main entry point — check that WidgetBundle exists in sources
-ls ClaudeUsageWidget/Sources/
-# Must include ClaudeUsageWidgetBundle.swift with @main struct
+ls ClaudeMeterWidget/Sources/
+# Must include ClaudeMeterWidgetBundle.swift with @main struct
 
 # Must have app-sandbox entitlement embedded in signature
 codesign -d --entitlements :- "$WIDGET" 2>/dev/null | grep app-sandbox
@@ -51,7 +51,7 @@ PR builds are unsigned. Use `scripts/install-pr-build.sh` — it auto-signs afte
 For manual re-signing:
 
 ```bash
-APP="/Applications/Claude Usage.app"
+APP="/Applications/Claude Meter.app"
 CERT="Developer ID Application: Eylon Shmilovich (9WM2J36V23)"
 
 # Sign leaf → parent order (never --deep on the parent)
@@ -63,10 +63,10 @@ find "$APP/Contents/Frameworks/Sparkle.framework" \( -name "*.xpc" -o -name "*.a
 codesign --force --sign "$CERT" --options runtime --timestamp \
   "$APP/Contents/Frameworks/Sparkle.framework"
 codesign --force --sign "$CERT" --options runtime --timestamp \
-  --entitlements ClaudeUsageWidget/Resources/ClaudeUsageWidget.entitlements \
-  "$APP/Contents/PlugIns/ClaudeUsageWidgetExtension.appex"
+  --entitlements ClaudeMeterWidget/Resources/ClaudeMeterWidget.entitlements \
+  "$APP/Contents/PlugIns/ClaudeMeterWidgetExtension.appex"
 codesign --force --sign "$CERT" --options runtime --timestamp \
-  --entitlements ClaudeUsage/Resources/ClaudeUsage.entitlements \
+  --entitlements ClaudeMeter/Resources/ClaudeMeter.entitlements \
   "$APP"
 
 codesign --verify --deep --strict "$APP" && echo "✅ OK"

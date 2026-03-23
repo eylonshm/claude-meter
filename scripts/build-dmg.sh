@@ -5,10 +5,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="$PROJECT_DIR/build"
 DMG_DIR="$PROJECT_DIR/dist"
-APP_NAME="Claude Usage"
-DMG_NAME="ClaudeUsage"
+APP_NAME="Claude Meter"
+DMG_NAME="ClaudeMeter"
 VERSION="${1:-1.0.0}"
-KEYCHAIN_PROFILE="ClaudeUsage"  # Created via: xcrun notarytool store-credentials "ClaudeUsage"
+KEYCHAIN_PROFILE="ClaudeMeter"  # Created via: xcrun notarytool store-credentials "ClaudeMeter"
 
 echo "==> Cleaning previous builds..."
 rm -rf "$BUILD_DIR" "$DMG_DIR"
@@ -20,8 +20,8 @@ xcodegen generate
 
 echo "==> Building Release (signed)..."
 xcodebuild \
-    -project ClaudeUsage.xcodeproj \
-    -scheme ClaudeUsage \
+    -project ClaudeMeter.xcodeproj \
+    -scheme ClaudeMeter \
     -configuration Release \
     build \
     CONFIGURATION_BUILD_DIR="$BUILD_DIR" \
@@ -34,11 +34,11 @@ fi
 
 echo "==> Embedding widget extension..."
 mkdir -p "$BUILD_DIR/$APP_NAME.app/Contents/PlugIns"
-cp -R "$BUILD_DIR/ClaudeUsageWidgetExtension.appex" "$BUILD_DIR/$APP_NAME.app/Contents/PlugIns/"
+cp -R "$BUILD_DIR/ClaudeMeterWidgetExtension.appex" "$BUILD_DIR/$APP_NAME.app/Contents/PlugIns/"
 
 echo "==> Bundling resources..."
 mkdir -p "$BUILD_DIR/$APP_NAME.app/Contents/Resources"
-cp "$PROJECT_DIR/ClaudeUsage/Resources/fetch-quota.sh" "$BUILD_DIR/$APP_NAME.app/Contents/Resources/"
+cp "$PROJECT_DIR/ClaudeMeter/Resources/fetch-quota.sh" "$BUILD_DIR/$APP_NAME.app/Contents/Resources/"
 chmod +x "$BUILD_DIR/$APP_NAME.app/Contents/Resources/fetch-quota.sh"
 
 echo "==> Verifying code signature..."
@@ -50,7 +50,7 @@ rm -f "$DMG_DIR/$DMG_NAME-$VERSION.dmg"
 
 create-dmg \
     --volname "$APP_NAME" \
-    --volicon "$PROJECT_DIR/ClaudeUsage/Resources/AppIcon.icns" \
+    --volicon "$PROJECT_DIR/ClaudeMeter/Resources/AppIcon.icns" \
     --window-pos 200 120 \
     --window-size 600 400 \
     --icon-size 100 \

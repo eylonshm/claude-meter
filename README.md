@@ -1,4 +1,4 @@
-# Claude Usage Widget
+# Claude Meter
 
 A native macOS menu bar app that shows your Claude Code usage and quota data — styled to match the Claude Code CLI aesthetic.
 
@@ -12,7 +12,7 @@ A native macOS menu bar app that shows your Claude Code usage and quota data —
   <img src="docs/claudeUsageExample1.png" width="580" alt="Settings window" />
 </p>
 <p align="center">
-  <img src="docs/ClaudeUsageExampleTwo.png" height="380" alt="Menu bar dropdown" />
+  <img src="docs/ClaudeMeterExampleTwo.png" height="380" alt="Menu bar dropdown" />
   &nbsp;&nbsp;
   <img src="docs/ClaudeWidgetExampleThree.png" height="380" alt="Desktop widgets" />
 </p>
@@ -35,28 +35,28 @@ A native macOS menu bar app that shows your Claude Code usage and quota data —
 ### Option 1: Homebrew (recommended)
 
 ```bash
-brew install --cask eylonshm/tap/claude-usage-widget
+brew install --cask eylonshm/tap/claude-meter
 ```
 
 Homebrew handles Gatekeeper automatically — no extra steps needed.
 
 ### Option 2: Download DMG
 
-**[Download latest DMG](https://github.com/eylonshm/claude-usage-widget/releases/latest)**
+**[Download latest DMG](https://github.com/eylonshm/claude-meter/releases/latest)**
 
-1. Open the DMG and drag **Claude Usage** to your Applications folder
+1. Open the DMG and drag **Claude Meter** to your Applications folder
 2. On first launch, macOS will block the app (it's unsigned). To open it:
    - **Easiest**: Right-click the app in Finder → **Open** → **Open**
-   - **Terminal**: `xattr -cr /Applications/Claude\ Usage.app`
+   - **Terminal**: `xattr -cr /Applications/Claude\ Meter.app`
 
 ### Option 3: Build from Source
 
 ```bash
 brew install xcodegen
-git clone https://github.com/eylonshm/claude-usage-widget.git
-cd claude-usage-widget
+git clone https://github.com/eylonshm/claude-meter.git
+cd claude-meter
 xcodegen generate
-open ClaudeUsage.xcodeproj
+open ClaudeMeter.xcodeproj
 ```
 
 Build and run with `Cmd+R`.
@@ -65,7 +65,7 @@ Build and run with `Cmd+R`.
 
 1. The app appears as a **sparkle icon** in the menu bar showing your weekly quota %
 2. Click the icon to see the full usage dropdown
-3. Add desktop widgets: right-click desktop → Edit Widgets → search "Claude Usage"
+3. Add desktop widgets: right-click desktop → Edit Widgets → search "Claude Meter"
 4. Click the gear icon in the dropdown to open Settings
 
 ## Configuration

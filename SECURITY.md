@@ -4,7 +4,7 @@
 
 Please **do not** open a public GitHub issue for security vulnerabilities.
 
-Instead, report them privately via [GitHub's private vulnerability reporting](https://github.com/eylonshm/claude-usage-widget/security/advisories/new).
+Instead, report them privately via [GitHub's private vulnerability reporting](https://github.com/eylonshm/claude-meter/security/advisories/new).
 
 I'll respond as quickly as possible and coordinate a fix before any public disclosure.
 

@@ -1,6 +1,6 @@
 ## Context
 
-Claude Usage Widget is a macOS 14+ menu bar app distributed as an unsigned DMG via GitHub Releases and as a Homebrew cask. It has no update mechanism today. Sparkle 2 is the de-facto standard for macOS app auto-updates outside the App Store. The app uses XcodeGen (`project.yml`) for project generation, Swift Package Manager for potential future dependencies, and GitHub Actions for CI/CD.
+Claude Meter Widget is a macOS 14+ menu bar app distributed as an unsigned DMG via GitHub Releases and as a Homebrew cask. It has no update mechanism today. Sparkle 2 is the de-facto standard for macOS app auto-updates outside the App Store. The app uses XcodeGen (`project.yml`) for project generation, Swift Package Manager for potential future dependencies, and GitHub Actions for CI/CD.
 
 The app is **unsigned and unnotarized**. Apple code signing is irrelevant here; Sparkle's own EdDSA signature on the update package is what matters — it prevents a MITM from serving a malicious update to users who have trusted the app.
 
@@ -31,7 +31,7 @@ The app is **unsigned and unnotarized**. Apple code signing is irrelevant here; 
 ---
 
 ### Decision: Appcast hosting via raw GitHub URL on `main`
-**Choice**: Commit `appcast.xml` to the repo root and serve it at `https://raw.githubusercontent.com/eylonshm/claude-usage-widget/main/appcast.xml`.
+**Choice**: Commit `appcast.xml` to the repo root and serve it at `https://raw.githubusercontent.com/eylonshm/claude-meter/main/appcast.xml`.
 
 **Rationale**: No separate hosting infrastructure needed. The release workflow already has `contents: write` permission. Raw GitHub URLs are stable and free. The CI job commits the updated appcast back to `main` after each release.
 
@@ -51,7 +51,7 @@ The app is **unsigned and unnotarized**. Apple code signing is irrelevant here; 
 
 **Rationale**: `AppDelegate` already owns first-launch logic. Sparkle's standard controller handles the full update UI lifecycle; we just need to hold a strong reference and expose `checkForUpdates(_:)` to the Settings view via a shared accessor.
 
-**Alternative considered**: Initialize in `ClaudeUsageApp` body. Rejected — `@main App` structs have limited lifecycle hooks; `AppDelegate` is already in use and is the right owner.
+**Alternative considered**: Initialize in `ClaudeMeterApp` body. Rejected — `@main App` structs have limited lifecycle hooks; `AppDelegate` is already in use and is the right owner.
 
 ---
 
