@@ -46,7 +46,7 @@ targets:
         CODE_SIGN_IDENTITY: "Developer ID Application"
         PROVISIONING_PROFILE_SPECIFIER: ""
         PRODUCT_NAME: Claude Meter
-        MARKETING_VERSION: "1.2.27"
+        MARKETING_VERSION: "1.2.28"
         CURRENT_PROJECT_VERSION: "1"
     dependencies:
       - package: Sparkle
@@ -76,7 +76,7 @@ targets:
         CODE_SIGN_IDENTITY: "Developer ID Application"
         PROVISIONING_PROFILE_SPECIFIER: ""
         PRODUCT_NAME: ClaudeMeterWidgetExtension
-        MARKETING_VERSION: "1.2.27"
+        MARKETING_VERSION: "1.2.28"
         CURRENT_PROJECT_VERSION: "1"
     entitlements:
       path: ClaudeMeterWidget/Resources/ClaudeMeterWidget.entitlements
