@@ -6,6 +6,14 @@ A native macOS menu bar app that shows your Claude Code usage and quota data —
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/claudeUsageExample1.png" width="300" alt="Settings window" />
+  <img src="docs/ClaudeUsageExampleTwo.png" width="220" alt="Menu bar dropdown" />
+  <img src="docs/ClaudeWidgetExampleThree.png" width="420" alt="Desktop widgets" />
+</p>
+
 ## Features
 
 - **Menu bar** — Weekly quota percentage always visible; click for a full dropdown with quota bars, today's stats, and model breakdown
