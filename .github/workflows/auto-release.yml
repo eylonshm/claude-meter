@@ -2,7 +2,8 @@ name: Auto Release on Merge
 
 # Triggered when a PR is merged into main.
 # Bumps the version (patch by default), commits to main, then calls
-# release.yml directly via workflow_call — no PAT required.
+# release.yml directly via workflow_call. The bump commit is pushed with
+# RELEASE_TOKEN (admin PAT) to satisfy the main-branch ruleset.
 #
 # To request a specific bump type, add one of these labels to the PR:
 #   release:major  →  1.2.3 → 2.0.0
@@ -26,7 +27,11 @@ jobs:
     outputs:
       version: ${{ steps.new.outputs.VERSION }}
     steps:
+      # Use RELEASE_TOKEN (admin PAT) so the bump commit can be pushed to main —
+      # the branch ruleset's "changes via PR" rule blocks the default bot token.
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Determine release type from PR labels
         id: release_type
