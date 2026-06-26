@@ -37,6 +37,9 @@ fi
 # Use expect to spawn claude, handle optional trust dialog, then fetch /usage
 RAW=$(expect -c "
     log_user 1
+    # Tall/wide PTY so the whole /usage screen renders without scrolling — the
+    # weekly per-model section now sits below the default 24-row fold.
+    set stty_init \"rows 60 cols 200\"
     set timeout 20
     spawn $CLAUDE --dangerously-skip-permissions
     # Wait up to 4s for an optional directory trust dialog.
@@ -62,13 +65,15 @@ RAW=$(expect -c "
 # Strip ANSI codes and control chars
 CLEAN=$(echo "$RAW" | sed $'s/\x1b\[[0-9;]*[a-zA-Z]//g' | sed $'s/\x1b\[?[0-9]*[a-z]//g' | sed $'s/\x1b\[[0-9;]*m//g' | sed $'s/\x1b[>\\[][^a-zA-Z]*[a-zA-Z]//g' | tr -s ' ')
 
-# Parse sections using an awk state machine.
-# Claude's /usage TUI now renders each section across multiple lines:
-#   Line 1: header  (e.g. "Currentsession" — spaces may be collapsed by ANSI stripping)
-#   Line 2: progress bar with percentage  (e.g. "42%used")
-#   Line 3: reset time  (e.g. "Resets8:20pm(Asia/Jerusalem)")
-# The awk approach also handles the older single-line format for backwards compatibility.
-PARSED=$(echo "$CLEAN" | awk '
+# Claude's /usage TUI redraws via cursor-positioning escape codes, not newlines.
+# After ANSI stripping the entire screen collapses onto ONE physical line, so a
+# line-based state machine sees "session" and "week" on the same line and mis-
+# attributes percentages. Re-introduce line breaks before each known marker so
+# every section, percentage, and reset lands on its own line again.
+SPLIT=$(echo "$CLEAN" | sed -E $'s/(Current session|Current week|Resets|What\'s contributing|Claude Code and Cowork)/\\\n&/g')
+
+# Parse sections using an awk state machine, one section per line after the split.
+PARSED=$(echo "$SPLIT" | awk '
     # Section header detection — [[:space:]]* handles collapsed spaces
     /[Cc]urrent[[:space:]]*[Ss]ession/ && !/[Ww]eek/ {
         in_session=1; in_weekly_all=0; in_weekly_sonnet=0
@@ -79,8 +84,9 @@ PARSED=$(echo "$CLEAN" | awk '
     /[Cc]urrent[[:space:]]*[Ww]eek/ && /[Ss]onnet/ {
         in_weekly_sonnet=1; in_session=0; in_weekly_all=0
     }
-    # End of usage dialog
-    /[Ee]sc[[:space:]]*to[[:space:]]*[Cc]ancel|[Rr]efreshing/ {
+    # End of the quota sections — stop before the new "What'\''s contributing…"
+    # breakdown and credit blocks, whose percentages must not be captured.
+    /[Ee]sc[[:space:]]*to[[:space:]]*[Cc]ancel|[Rr]efreshing|[Cc]ontributing|[Cc]owork[[:space:]]*credit/ {
         in_session=0; in_weekly_all=0; in_weekly_sonnet=0
     }
     # Extract percentage (first N% found after header)
