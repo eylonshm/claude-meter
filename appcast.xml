@@ -3,15 +3,15 @@
   <channel>
     <title>Claude Meter Widget</title>
     <item>
-      <title>Version 1.2.28</title>
-      <sparkle:version>1.2.28</sparkle:version>
-      <sparkle:shortVersionString>1.2.28</sparkle:shortVersionString>
+      <title>Version 1.2.29</title>
+      <sparkle:version>1.2.29</sparkle:version>
+      <sparkle:shortVersionString>1.2.29</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <pubDate>Mon, 23 Mar 2026 18:32:39 +0000</pubDate>
+      <pubDate>Fri, 26 Jun 2026 17:08:41 +0000</pubDate>
       <enclosure
-        url="https://github.com/eylonshm/claude-meter/releases/download/v1.2.28/ClaudeMeter-1.2.28.dmg"
-        sparkle:edSignature="/T3BlSI6sjtt+FFldPevEezsdpalv6qwR8PApxrXIAImBz5KG4TYOXV+Y9GFGjmKFtWqdzuyrYLDJx5ZLXecAQ=="
-        length="2118696"
+        url="https://github.com/eylonshm/claude-meter/releases/download/v1.2.29/ClaudeMeter-1.2.29.dmg"
+        sparkle:edSignature="/tPgUgNBOldVzhdDYrPgCvCLNPg+9SIsox6J64YiY1CAvh6ccOZot1ngLoOSz0oPY0W5dIavDt0XHNx28b+HCA=="
+        length="2120790"
         type="application/octet-stream"/>
     </item>
   </channel>
