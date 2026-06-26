@@ -37,6 +37,9 @@ fi
 # Use expect to spawn claude, handle optional trust dialog, then fetch /usage
 RAW=$(expect -c "
     log_user 1
+    # Tall/wide PTY so the whole /usage screen renders without scrolling — the
+    # weekly per-model section now sits below the default 24-row fold.
+    set stty_init \"rows 60 cols 200\"
     set timeout 20
     spawn $CLAUDE --dangerously-skip-permissions
     # Wait up to 4s for an optional directory trust dialog.
@@ -62,19 +65,72 @@ RAW=$(expect -c "
 # Strip ANSI codes and control chars
 CLEAN=$(echo "$RAW" | sed $'s/\x1b\[[0-9;]*[a-zA-Z]//g' | sed $'s/\x1b\[?[0-9]*[a-z]//g' | sed $'s/\x1b\[[0-9;]*m//g' | sed $'s/\x1b[>\\[][^a-zA-Z]*[a-zA-Z]//g' | tr -s ' ')
 
-# The TUI output may collapse all sections onto one line.
-# Split on "Current " so each section is on its own line before parsing.
-SPLIT=$(echo "$CLEAN" | sed 's/Current /\nCurrent /g')
+# Claude's /usage TUI redraws via cursor-positioning escape codes, not newlines.
+# After ANSI stripping the entire screen collapses onto ONE physical line, so a
+# line-based state machine sees "session" and "week" on the same line and mis-
+# attributes percentages. Re-introduce line breaks before each known marker so
+# every section, percentage, and reset lands on its own line again.
+SPLIT=$(echo "$CLEAN" | sed -E $'s/(Current session|Current week|Resets|What\'s contributing|Claude Code and Cowork)/\\\n&/g')
 
-# Extract percentages — each section is now isolated
-SESSION_PCT=$(echo "$SPLIT" | grep -i "session" | grep -v -i "week" | grep -oE '[0-9]+%' | head -1 | tr -d '%')
-WEEKLY_ALL_PCT=$(echo "$SPLIT" | grep -i "allmodels\|all models" | grep -oE '[0-9]+%' | head -1 | tr -d '%')
-WEEKLY_SONNET_PCT=$(echo "$SPLIT" | grep -i "Sonnetonly\|Sonnet only" | grep -oE '[0-9]+%' | head -1 | tr -d '%')
+# Parse sections using an awk state machine, one section per line after the split.
+PARSED=$(echo "$SPLIT" | awk '
+    # Section header detection — [[:space:]]* handles collapsed spaces
+    /[Cc]urrent[[:space:]]*[Ss]ession/ && !/[Ww]eek/ {
+        in_session=1; in_weekly_all=0; in_weekly_sonnet=0
+    }
+    /[Cc]urrent[[:space:]]*[Ww]eek/ && /[Aa]ll[[:space:]]*[Mm]odels|allmodels/ {
+        in_weekly_all=1; in_session=0; in_weekly_sonnet=0
+    }
+    /[Cc]urrent[[:space:]]*[Ww]eek/ && /[Ss]onnet/ {
+        in_weekly_sonnet=1; in_session=0; in_weekly_all=0
+    }
+    # End of the quota sections — stop before the new "What'\''s contributing…"
+    # breakdown and credit blocks, whose percentages must not be captured.
+    /[Ee]sc[[:space:]]*to[[:space:]]*[Cc]ancel|[Rr]efreshing|[Cc]ontributing|[Cc]owork[[:space:]]*credit/ {
+        in_session=0; in_weekly_all=0; in_weekly_sonnet=0
+    }
+    # Extract percentage (first N% found after header)
+    in_session && !session_pct && match($0, /[0-9]+%/) {
+        session_pct = substr($0, RSTART, RLENGTH-1)
+    }
+    in_weekly_all && !weekly_all_pct && match($0, /[0-9]+%/) {
+        weekly_all_pct = substr($0, RSTART, RLENGTH-1)
+    }
+    in_weekly_sonnet && !weekly_sonnet_pct && match($0, /[0-9]+%/) {
+        weekly_sonnet_pct = substr($0, RSTART, RLENGTH-1)
+    }
+    # Extract reset time: strip "Resets" prefix and "Esc…" suffix
+    in_session && !session_reset && /[Rr]eset/ {
+        session_reset = $0
+        sub(/.*[Rr]eset[s]?[[:space:]]*/,"",session_reset)
+        sub(/[Ee]sc.*/,"",session_reset)
+    }
+    in_weekly_all && !weekly_all_reset && /[Rr]eset/ {
+        weekly_all_reset = $0
+        sub(/.*[Rr]eset[s]?[[:space:]]*/,"",weekly_all_reset)
+        sub(/[Ee]sc.*/,"",weekly_all_reset)
+    }
+    in_weekly_sonnet && !weekly_sonnet_reset && /[Rr]eset/ {
+        weekly_sonnet_reset = $0
+        sub(/.*[Rr]eset[s]?[[:space:]]*/,"",weekly_sonnet_reset)
+        sub(/[Ee]sc.*/,"",weekly_sonnet_reset)
+    }
+    END {
+        print session_pct
+        print session_reset
+        print weekly_all_pct
+        print weekly_all_reset
+        print weekly_sonnet_pct
+        print weekly_sonnet_reset
+    }
+')
 
-# Extract reset times — strip everything up to and including "Reset(s)" then strip trailing "Esc to cancel"
-SESSION_RESET=$(echo "$SPLIT" | grep -i "session" | grep -v -i "week" | sed 's/.*[Rr]ese[tTs]*//' | sed 's/Esc.*//' | tr -d $'\r' | head -1)
-WEEKLY_ALL_RESET=$(echo "$SPLIT" | grep -i "allmodels\|all models" | sed 's/.*[Rr]ese[tTs]*//' | sed 's/Esc.*//' | tr -d $'\r' | head -1)
-WEEKLY_SONNET_RESET=$(echo "$SPLIT" | grep -i "Sonnetonly\|Sonnet only" | sed 's/.*[Rr]ese[tTs]*//' | sed 's/Esc.*//' | tr -d $'\r' | head -1)
+SESSION_PCT=$(echo "$PARSED"         | sed -n '1p')
+SESSION_RESET=$(echo "$PARSED"       | sed -n '2p')
+WEEKLY_ALL_PCT=$(echo "$PARSED"      | sed -n '3p')
+WEEKLY_ALL_RESET=$(echo "$PARSED"    | sed -n '4p')
+WEEKLY_SONNET_PCT=$(echo "$PARSED"   | sed -n '5p')
+WEEKLY_SONNET_RESET=$(echo "$PARSED" | sed -n '6p')
 
 # Default to 0/— if empty
 SESSION_PCT=${SESSION_PCT:-0}
